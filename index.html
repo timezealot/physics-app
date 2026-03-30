@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물리1 풀이 분석기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d8;
+  --accent:#2563eb;--accent-light:#dbeafe;--green:#16a34a;--green-light:#dcfce7;
+  --red:#dc2626;--red-light:#fee2e2;--yellow:#d97706;--yellow-light:#fef3c7;
+  --text:#1a1917;--text2:#6b6860;--text3:#a8a49e;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;font-size:14px;line-height:1.7;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow);}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:900;flex-shrink:0;}
+.header-title{font-size:15px;font-weight:700;}
+.header-sub{font-size:11px;color:var(--text3);}
+.api-wrap{display:flex;align-items:center;gap:8px;}
+.api-label{font-size:11px;color:var(--text2);white-space:nowrap;}
+.api-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 10px;outline:none;width:200px;transition:border-color .15s;}
+.api-input:focus{border-color:var(--accent);}
+.container{max-width:900px;margin:0 auto;padding:24px 16px 120px;}
+.mode-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);}
+.mode-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;}
+.mode-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.mode-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;}
+.mode-btn:hover{border-color:var(--accent);color:var(--accent);}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.mode-desc{font-size:11px;color:var(--text3);margin-top:8px;}
+.control-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.control-label{font-size:12px;color:var(--text2);white-space:nowrap;font-weight:500;}
+.count-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.count-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;}
+.count-btn:hover{border-color:var(--accent);color:var(--accent);}
+.count-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.tab-nav{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:14px;gap:2px;}
+.tab-btn{flex:1;padding:9px 6px;border-radius:7px;border:none;background:transparent;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;text-align:center;}
+.tab-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
+.input-section{display:none;}
+.input-section.active{display:block;}
+.bulk-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:600px){.bulk-grid{grid-template-columns:1fr;}.api-input{width:130px;}.header-sub{display:none;}}
+.bulk-zone{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+.bulk-zone-header{padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.bulk-zone-title{font-size:12px;font-weight:700;color:var(--text2);}
+.bulk-drop-area{padding:20px 14px;text-align:center;cursor:pointer;transition:background .12s;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.bulk-drop-area:hover{background:var(--accent-light);}
+.bulk-drop-icon{font-size:26px;}
+.bulk-drop-text{font-size:12px;color:var(--text2);}
+.bulk-drop-sub{font-size:11px;color:var(--text3);}
+.bulk-file-input{display:none;}
+.bulk-preview-grid{padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;}
+.bulk-img-wrap{position:relative;display:inline-block;}
+.bulk-img{width:76px;height:76px;object-fit:cover;border-radius:7px;border:1px solid var(--border);display:block;cursor:pointer;transition:transform .1s;}
+.bulk-img:hover{transform:scale(1.05);}
+.bulk-img-remove{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bulk-img-name{font-size:9px;color:var(--text3);text-align:center;margin-top:2px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bulk-add-btn{width:76px;height:76px;border:2px dashed var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;color:var(--text3);background:transparent;transition:all .12s;}
+.bulk-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+.bulk-text-area{width:100%;background:transparent;border:none;border-top:1px solid var(--border);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;line-height:1.7;padding:10px 14px;resize:vertical;min-height:60px;outline:none;}
+.bulk-text-area::placeholder{color:var(--text3);}
+.problem-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
+.problem-block:focus-within{box-shadow:var(--shadow-lg);border-color:#93c5fd;}
+.problem-header{padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.problem-header-left{display:flex;align-items:center;gap:8px;}
+.problem-num{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px;}
+.problem-label{font-size:12px;color:var(--text2);}
+.img-badge{background:var(--accent-light);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;}
+.img-upload-btn{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;}
+.img-upload-btn:hover{border-color:var(--accent);color:var(--accent);}
+.img-upload-input{display:none;}
+.img-preview-area{padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;}
+.img-preview-wrap{position:relative;}
+.img-preview{width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--border);display:block;cursor:pointer;}
+.img-remove-btn{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.img-name{font-size:9px;color:var(--text3);text-align:center;margin-top:2px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.input-divider{border:none;border-top:1px solid var(--border);}
+textarea{width:100%;background:transparent;border:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;line-height:1.7;padding:12px 14px;resize:vertical;min-height:80px;outline:none;}
+textarea::placeholder{color:var(--text3);}
+.range-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--text);resize:none;outline:none;min-height:48px;}
+.range-input::placeholder{color:var(--text3);}
+.analyze-wrap{position:fixed;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;justify-content:center;z-index:100;}
+.analyze-btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:15px 40px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:480px;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(37,99,235,.35);}
+.analyze-btn:hover{background:#1d4ed8;transform:translateY(-1px);}
+.analyze-btn:active{transform:scale(.98);}
+.result-section{display:none;}
+.result-section.visible{display:block;}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.result-title{font-size:16px;font-weight:700;}
+.back-btn{background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;transition:all .12s;}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);}
+.prob-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow);}
+.prob-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
+.prob-card-left{display:flex;align-items:center;gap:10px;}
+.prob-card-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px;}
+.prob-card-title{font-size:13px;font-weight:600;color:var(--text);}
+.ox-badge{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;padding:3px 10px;border-radius:6px;}
+.ox-o{background:var(--green-light);color:var(--green);}
+.ox-x{background:var(--red-light);color:var(--red);}
+.prob-card-body{padding:16px 18px;}
+.answer-chip{display:inline-flex;align-items:center;gap:6px;background:var(--yellow-light);border:1px solid #fde68a;border-radius:7px;padding:6px 12px;margin-bottom:14px;font-size:13px;color:var(--yellow);font-weight:600;}
+.sec-block{margin-bottom:14px;}
+.sec-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.sec-title::before{content:'';width:3px;height:12px;background:var(--accent);border-radius:2px;display:inline-block;}
+.flow-steps{display:flex;flex-direction:column;gap:6px;}
+.flow-step{display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:7px;padding:8px 12px;}
+.flow-step-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.flow-step-text{font-size:13px;color:var(--text);line-height:1.6;}
+.fb-block{background:var(--red-light);border:1px solid #fca5a5;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:keep-all;color:var(--text);}
+.fb-improve{background:var(--yellow-light);border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:keep-all;color:var(--text);}
+.score-summary{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.score-pill{display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 12px;min-width:80px;}
+.score-pill-label{font-size:10px;color:var(--text2);margin-bottom:2px;}
+.score-pill-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);}
+.score-pill.total .score-pill-val{color:var(--green);font-size:17px;}
+.score-pill-sub{font-size:9px;color:var(--text3);}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:20px;box-shadow:var(--shadow);}
+.summary-card-header{padding:14px 18px;background:var(--text);color:#fff;font-size:13px;font-weight:700;}
+.summary-table{width:100%;border-collapse:collapse;font-size:12px;}
+.summary-table th{background:var(--surface2);color:var(--text2);padding:10px 14px;text-align:center;border-bottom:1px solid var(--border);font-weight:600;}
+.summary-table td{padding:10px 14px;text-align:center;border-bottom:1px solid var(--border);color:var(--text);}
+.summary-table tr:last-child td{border-bottom:none;font-weight:700;background:var(--surface2);}
+.summary-table .mono{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);}
+.total-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-top:14px;overflow:hidden;box-shadow:var(--shadow);}
+.total-card-header{padding:14px 18px;background:var(--text);color:#fff;font-size:13px;font-weight:700;}
+.total-card-body{padding:16px 18px;}
+.total-section{margin-bottom:14px;}
+.total-section-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+.total-section-content{font-size:13px;color:var(--text);line-height:1.8;}
+.loading-wrap{padding:48px 16px;text-align:center;}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{color:var(--text2);font-size:13px;}
+.stream-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);}
+.stream-text{color:var(--text);font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:keep-all;padding:16px 18px;}
+.error-box{background:var(--red-light);border:1px solid #fca5a5;border-radius:10px;padding:14px 16px;color:var(--red);font-size:13px;margin-bottom:14px;}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;}
+.lightbox-close{position:absolute;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">S</div>
+    <div>
+      <div class="header-title">물리1 풀이 분석기</div>
+      <div class="header-sub">Claude AI 기반 역량 피드백</div>
+    </div>
+  </div>
+  <div class="api-wrap">
+    <button id="mockToggle" onclick="toggleMock()" style="
+      background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;
+      padding:5px 10px;font-size:11px;font-family:'Noto Sans KR',sans-serif;
+      color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;font-weight:600;
+    ">🧪 목업 모드 OFF</button>
+    <span class="api-label">🔑 API Key</span>
+    <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-api03-..."/>
+  </div>
+</div>
+<!-- Mock mode banner -->
+<div id="mockBanner" style="display:none;background:#fef3c7;border-bottom:1px solid #fde68a;padding:8px 20px;text-align:center;font-size:12px;color:#92400e;font-weight:600;">
+  🧪 목업 모드 활성화 — API를 호출하지 않고 샘플 결과를 보여줍니다
+</div>
+
+<div class="container">
+  <div id="inputView">
+
+    <div class="mode-bar">
+      <div class="mode-title">입력 방식 선택</div>
+      <div class="mode-btns">
+        <button class="mode-btn active" onclick="setMode('A')">📋 문제별 입력</button>
+        <button class="mode-btn" onclick="setMode('B')">🖼️ 사진 통합 입력</button>
+      </div>
+      <div class="mode-desc" id="modeDesc">문제마다 따로 내용을 입력합니다. 텍스트 + 사진 모두 가능해요.</div>
+    </div>
+
+    <!-- Mode A -->
+    <div id="modeA">
+      <div class="control-bar">
+        <span class="control-label">문제 수</span>
+        <div class="count-btns" id="countBtns"></div>
+      </div>
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(0)">📝 문제</button>
+        <button class="tab-btn" onclick="switchTab(1)">✅ 정답·해설</button>
+        <button class="tab-btn" onclick="switchTab(2)">✏️ 학생 풀이</button>
+      </div>
+      <div class="input-section active" id="tab0"><div id="questions-container"></div></div>
+      <div class="input-section" id="tab1"><div id="answers-container"></div></div>
+      <div class="input-section" id="tab2"><div id="solutions-container"></div></div>
+    </div>
+
+    <!-- Mode B -->
+    <div id="modeB" style="display:none">
+      <div class="bulk-grid">
+        <div class="bulk-zone">
+          <div class="bulk-zone-header">
+            <span class="bulk-zone-title">📝 문제 사진 / 텍스트</span>
+            <span class="img-badge" id="bulk-badge-q" style="display:none"></span>
+          </div>
+          <label class="bulk-drop-area" for="bulk-file-q" id="bulk-drop-q">
+            <span class="bulk-drop-icon">📷</span>
+            <span class="bulk-drop-text">사진 추가</span>
+            <span class="bulk-drop-sub">한 장에 여러 문제 OK</span>
+          </label>
+          <input class="bulk-file-input" type="file" id="bulk-file-q" accept="image/*" multiple onchange="bulkUpload('q',this)"/>
+          <div class="bulk-preview-grid" id="bulk-preview-q"></div>
+          <textarea class="bulk-text-area" id="bulk-text-q" placeholder="텍스트로 입력하거나 사진과 함께 사용 가능"></textarea>
+        </div>
+        <div class="bulk-zone">
+          <div class="bulk-zone-header">
+            <span class="bulk-zone-title">✅ 정답·해설 사진 / 텍스트</span>
+            <span class="img-badge" id="bulk-badge-a" style="display:none"></span>
+          </div>
+          <label class="bulk-drop-area" for="bulk-file-a" id="bulk-drop-a">
+            <span class="bulk-drop-icon">📷</span>
+            <span class="bulk-drop-text">사진 추가</span>
+            <span class="bulk-drop-sub">한 장에 여러 정답 OK</span>
+          </label>
+          <input class="bulk-file-input" type="file" id="bulk-file-a" accept="image/*" multiple onchange="bulkUpload('a',this)"/>
+          <div class="bulk-preview-grid" id="bulk-preview-a"></div>
+          <textarea class="bulk-text-area" id="bulk-text-a" placeholder="텍스트로 입력하거나 사진과 함께 사용 가능"></textarea>
+        </div>
+        <div class="bulk-zone">
+          <div class="bulk-zone-header">
+            <span class="bulk-zone-title">✏️ 학생 풀이 사진 / 텍스트</span>
+            <span class="img-badge" id="bulk-badge-s" style="display:none"></span>
+          </div>
+          <label class="bulk-drop-area" for="bulk-file-s" id="bulk-drop-s">
+            <span class="bulk-drop-icon">📷</span>
+            <span class="bulk-drop-text">사진 추가</span>
+            <span class="bulk-drop-sub">한 장에 여러 풀이 OK</span>
+          </label>
+          <input class="bulk-file-input" type="file" id="bulk-file-s" accept="image/*" multiple onchange="bulkUpload('s',this)"/>
+          <div class="bulk-preview-grid" id="bulk-preview-s"></div>
+          <textarea class="bulk-text-area" id="bulk-text-s" placeholder="텍스트로 입력하거나 사진과 함께 사용 가능"></textarea>
+        </div>
+      </div>
+      <div class="mode-bar">
+        <div class="mode-title">분석할 문제 번호 지정 (선택)</div>
+        <textarea class="range-input" id="bulk-range" placeholder="예) 5, 6, 7번 문제 분석해줘  (비워두면 사진에서 자동으로 모든 문제를 찾아 분석)"></textarea>
+      </div>
+    </div>
+
+    <div style="height:80px"></div>
+  </div>
+
+  <div id="resultView" class="result-section">
+    <div class="result-header">
+      <div class="result-title">📊 분석 결과</div>
+      <button class="back-btn" onclick="goBack()">← 다시 입력</button>
+    </div>
+    <div id="resultContent"></div>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<div class="analyze-wrap" id="analyzeWrap">
+  <button class="analyze-btn" onclick="analyze()">⚡ AI 분석 시작</button>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close">×</button>
+  <img id="lightboxImg" src="" alt=""/>
+</div>
+
+<script>
+let problemCount=3,currentMode='A';
+const imageStore={questions:{},answers:{},solutions:{}};
+const bulkStore={q:[],a:[],s:[]};
+
+function setMode(m){
+  currentMode=m;
+  document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('active',['A','B'][i]===m));
+  document.getElementById('modeA').style.display=m==='A'?'block':'none';
+  document.getElementById('modeB').style.display=m==='B'?'block':'none';
+  document.getElementById('modeDesc').textContent=m==='A'
+    ?'문제마다 따로 내용을 입력합니다. 텍스트 + 사진 모두 가능해요.'
+    :'사진 한 장에 여러 문제가 있어도 OK! 문제지·답안지·학생 답안을 사진으로 올리면 AI가 알아서 분석해요.';
+}
+
+function initCountBtns(){
+  const wrap=document.getElementById('countBtns'); wrap.innerHTML='';
+  for(let i=1;i<=10;i++){
+    const btn=document.createElement('button');
+    btn.className='count-btn'+(i===problemCount?' active':'');
+    btn.textContent=i;
+    btn.onclick=()=>{problemCount=i;initCountBtns();renderInputs();};
+    wrap.appendChild(btn);
+  }
+}
+
+function renderInputs(){
+  const types=['questions','answers','solutions'];
+  const labels=['문제 내용','정답 및 해설','학생 풀이'];
+  const phs=['문제 내용을 입력하거나 📷 사진을 추가하세요.','정답과 해설을 입력하거나 📷 사진을 추가하세요.','학생 풀이를 입력하거나 📷 사진을 추가하세요.'];
+  types.forEach((type,ti)=>{
+    const c=document.getElementById(type+'-container'); c.innerHTML='';
+    for(let i=1;i<=problemCount;i++){
+      if(!imageStore[type][i]) imageStore[type][i]=[];
+      const b=document.createElement('div'); b.className='problem-block';
+      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImageUpload('${type}',${i},this)"/></div><div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${phs[ti]}" rows="4"></textarea>`;
+      c.appendChild(b); renderPreviews(type,i);
+    }
+  });
+}
+
+function handleImageUpload(type,idx,input){
+  const files=Array.from(input.files); let loaded=0;
+  files.forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>{imageStore[type][idx].push({base64:e.target.result.split(',')[1],mediaType:file.type||'image/jpeg',name:file.name});if(++loaded===files.length)renderPreviews(type,idx);};
+    r.readAsDataURL(file);
+  }); input.value='';
+}
+function removeImage(type,idx,ii){imageStore[type][idx].splice(ii,1);renderPreviews(type,idx);}
+function renderPreviews(type,idx){
+  const area=document.getElementById(`preview_${type}_${idx}`);
+  const divider=document.getElementById(`divider_${type}_${idx}`);
+  const badge=document.getElementById(`badge_${type}_${idx}`);
+  if(!area)return; const imgs=imageStore[type][idx]||[]; area.innerHTML='';
+  if(!imgs.length){if(divider)divider.style.display='none';if(badge)badge.style.display='none';return;}
+  if(divider)divider.style.display='block';
+  if(badge){badge.style.display='inline';badge.textContent=`📷 ${imgs.length}`;}
+  imgs.forEach((img,ii)=>{
+    const w=document.createElement('div');w.className='img-preview-wrap';
+    w.innerHTML=`<img class="img-preview" src="data:${img.mediaType};base64,${img.base64}" onclick="openLightbox(this.src)"/><button class="img-remove-btn" onclick="removeImage('${type}',${idx},${ii})">×</button><div class="img-name">${img.name}</div>`;
+    area.appendChild(w);
+  });
+}
+function switchTab(idx){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.querySelectorAll('.input-section').forEach((s,i)=>s.classList.toggle('active',i===idx));
+}
+
+function bulkUpload(key,input){
+  const files=Array.from(input.files); let loaded=0;
+  files.forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>{bulkStore[key].push({base64:e.target.result.split(',')[1],mediaType:file.type||'image/jpeg',name:file.name});if(++loaded===files.length)renderBulkPreviews(key);};
+    r.readAsDataURL(file);
+  }); input.value='';
+}
+function removeBulkImage(key,ii){bulkStore[key].splice(ii,1);renderBulkPreviews(key);}
+function renderBulkPreviews(key){
+  const area=document.getElementById(`bulk-preview-${key}`);
+  const badge=document.getElementById(`bulk-badge-${key}`);
+  const drop=document.getElementById(`bulk-drop-${key}`);
+  if(!area)return; const imgs=bulkStore[key]; area.innerHTML='';
+  if(!imgs.length){badge.style.display='none';drop.style.display='flex';return;}
+  badge.style.display='inline';badge.textContent=`📷 ${imgs.length}`;
+  drop.style.display='none';
+  imgs.forEach((img,ii)=>{
+    const w=document.createElement('div');w.className='bulk-img-wrap';
+    w.innerHTML=`<img class="bulk-img" src="data:${img.mediaType};base64,${img.base64}" onclick="openLightbox(this.src)" title="${img.name}"/><button class="bulk-img-remove" onclick="removeBulkImage('${key}',${ii})">×</button><div class="bulk-img-name">${img.name}</div>`;
+    area.appendChild(w);
+  });
+  const addBtn=document.createElement('label');addBtn.htmlFor=`bulk-file-${key}`;
+  addBtn.innerHTML=`<div class="bulk-add-btn">+</div>`;area.appendChild(addBtn);
+}
+
+function openLightbox(src){document.getElementById('lightboxImg').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+function goBack(){
+  document.getElementById('resultView').classList.remove('visible');
+  document.getElementById('inputView').style.display='block';
+  document.getElementById('analyzeWrap').style.display='flex';
+}
+
+let isMock=false;
+function toggleMock(){
+  isMock=!isMock;
+  const btn=document.getElementById('mockToggle');
+  const banner=document.getElementById('mockBanner');
+  btn.textContent=isMock?'🧪 목업 모드 ON':'🧪 목업 모드 OFF';
+  btn.style.background=isMock?'#fef3c7':'var(--surface2)';
+  btn.style.borderColor=isMock?'#fde68a':'var(--border)';
+  btn.style.color=isMock?'#92400e':'var(--text2)';
+  banner.style.display=isMock?'block':'none';
+}
+
+const MOCK_RESPONSE=`=============================
+문제 5 피드백
+=============================
+
+▶ 1. 정답
+③
+
+▶ 2. 정오답 판단
+X
+
+▶ 3. 문제 풀이법
+1단계: 돌림힘 평형 조건 적용 — 받침점 기준 시계 방향 돌림힘 합 = 반시계 방향 돌림힘 합
+2단계: 해설 기준 작용하는 힘 정리 — F(반시계, 거리 d), 나무판 무게 20N(시계, 거리 4d), 물체 무게 50N(시계, 거리 9d)
+3단계: 평형 식 수립 — F x d = 20N x 4d + 50N x 9d = 80d + 450d = 530d
+4단계: 양변을 d로 나누면 F = 530N이 아닌 F = 570N → 정답 ③
+
+▶ 4. 풀이 피드백
+- 틀린 부분: 학생 풀이에서 나무판 자체 무게(20N)에 의한 돌림힘 항 20N x 4d = 80d를 식에 포함하지 않고 50N x 9d = 450d만 우변에 써서 F x d = 450d, F = 450N으로 계산했습니다.
+- 올바른 내용: 해설 3단계처럼 F x d = 20N x 4d + 50N x 9d = 530d로 식을 세워야 하며 나무판 무게 항 20N x 4d = 80d가 반드시 포함되어야 합니다.
+- 틀린 이유: 문제에서 나무판 무게중심 위치(4d)가 주어진 이유를 파악하지 못했습니다. 이 값은 나무판 자체 중력에 의한 돌림힘 20N x 4d를 계산하기 위해 제시된 조건입니다.
+- 풀이 방식 개선점: 풀이 시작 전 작용점 목록(F @ d, 나무판 20N @ 4d, 물체 50N @ 9d)을 먼저 나열한 뒤 각 항을 빠짐없이 식에 반영하는 습관을 들이세요.
+
+▶ 5. 역량 점수
+- 개념 이해도: 7점 / 10점
+- 풀이 전개력: 6점 / 10점
+- 문제 해석력: 5점 / 10점
+- 합계: 18점 / 30점
+
+=============================
+문제 6 피드백
+=============================
+
+▶ 1. 정답
+①
+
+▶ 2. 정오답 판단
+O
+
+▶ 5. 역량 점수
+- 개념 이해도: 10점 / 10점
+- 풀이 전개력: 10점 / 10점
+- 문제 해석력: 10점 / 10점
+- 합계: 30점 / 30점
+
+=============================
+문제 7 피드백
+=============================
+
+▶ 1. 정답
+④
+
+▶ 2. 정오답 판단
+O
+
+▶ 4. 풀이 피드백
+- 풀이 방식 개선점: 해설에서는 A 이동 시 우측 받침점 기준 돌림힘 방정식을 먼저 세워 d1 = L을 구한 뒤, B 이동 시 좌측 받침점 기준으로 d2 = 8/7L을 구하는 순서로 전개했습니다. 학생 풀이는 두 식을 동시에 세워 풀어 답은 맞았지만, 해설처럼 순차적으로 전개하면 d2 - d1 = 1/7L 도출 과정에서 검토가 더 쉽습니다. 중간 계산에서 단위 L을 생략한 부분도 있어 최종 정리 시 혼선이 생길 수 있습니다.
+
+▶ 5. 역량 점수
+- 개념 이해도: 10점 / 10점
+- 풀이 전개력: 8점 / 10점
+- 문제 해석력: 10점 / 10점
+- 합계: 28점 / 30점
+
+=============================
+총평
+=============================
+
+▶ 강점
+6번과 7번에서 돌림힘 평형 조건을 정확히 적용하고 복잡한 시스템의 받침점 기준 회전 분석을 완벽하게 수행했습니다. 문제에서 주어진 위치 조건과 힘의 관계를 빠르게 파악하는 해석력이 뛰어납니다.
+
+▶ 보완할 점
+5번처럼 여러 물체가 등장할 때 문제에서 주어진 모든 물리량(나무판 무게중심 위치 4d 등)이 왜 주어졌는지 그 의미를 파악하는 연습이 필요합니다. 풀이 시작 전 작용점 목록을 먼저 작성하면 항 누락을 방지할 수 있습니다.
+
+▶ 학습 방향
+돌림힘 문제마다 풀이 시작 전 힘 목록 작성 → 받침점 기준 거리 정리 → 평형 식 수립 순서를 고정하고, 해설의 단계별 전개 방식을 따라 순차적으로 풀이를 정리하는 연습을 해보세요.`;
+
+async function analyze(){
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(!isMock&&!apiKey){alert('API Key를 입력해주세요.\n테스트하려면 🧪 목업 모드를 켜세요.');return;}
+  document.getElementById('inputView').style.display='none';
+  document.getElementById('analyzeWrap').style.display='none';
+  document.getElementById('resultView').classList.add('visible');
+  const rc=document.getElementById('resultContent');
+  rc.innerHTML=`<div class="loading-wrap"><div class="loading-spinner"></div><div class="loading-text">${isMock?'🧪 목업 샘플 결과를 불러오는 중...':'AI가 풀이를 분석하고 있습니다...'}<br><small style="color:var(--text3)">${isMock?'실제 API는 호출하지 않습니다':'사진이 많으면 조금 더 걸릴 수 있어요'}</small></div></div>`;
+
+  // ── Mock mode: 샘플 데이터로 바로 렌더링 ──
+  if(isMock){
+    setTimeout(()=>renderResult(MOCK_RESPONSE, rc), 800);
+    return;
+  }
+
+  let parts=[],feedbackFormat='';
+
+  const SYSTEM=`당신은 고등학교 물리1 전문 선생님입니다.
+텍스트와 이미지를 모두 분석하세요. 사진 한 장에 여러 문제가 있으면 모두 찾아서 처리하세요.
+
+[피드백 핵심 원칙]
+- 반드시 입력된 정답 및 해설을 기준으로 피드백을 작성할 것
+- 정답 해설에 나온 풀이 단계, 공식, 수치, 개념을 그대로 활용하여 이 문제에만 해당하는 구체적인 피드백을 작성할 것
+- "돌림힘 평형 조건을 적용해야 합니다" 같은 포괄적 표현 금지
+  대신 "해설의 2단계처럼 받침점 기준 F x d = 20N x 4d + 50N x 9d 식을 세워야 합니다" 처럼 해당 문제의 실제 수치와 식을 사용할 것
+- 학생 풀이와 정답 해설을 줄 단위로 비교하여 어느 단계에서 어떻게 달라졌는지 정확히 지적할 것
+- 역량 점수도 이 문제의 해설 기준으로 평가할 것
+
+[절대 규칙]
+형식(▶,=====,항목명) 변경금지 / LaTeX금지(수식은 일반텍스트, 예: F x d = 570N) / 점수는 "X점 / 10점" / 정답은 원문자(①②③④⑤) / 정오답은 O또는X / 인사말·칭찬·여담 금지 / 모든항목 빠짐없이 / 풀이피드백: X→틀린부분+올바른내용+틀린이유+개선점, O+개선점→개선점만, O+완벽→항목생략 / 총평은 마지막에 한번만.
+역량점수(10점): 10=완벽, 8~9=사소한실수, 6~7=중요부분누락, 4~5=부분이해, 1~3=대부분놓침`;
+
+  const FMT_PROBLEM=`
+=============================
+문제 N 피드백
+=============================
+▶ 1. 정답
+(원문자: ①②③④⑤)
+▶ 2. 정오답 판단
+(O 또는 X)
+▶ 3. 문제 풀이법
+(정답 및 해설을 기반으로 이 문제의 실제 수치·공식·조건을 사용하여 단계별로 작성)
+1단계: (해설의 핵심 개념/공식 — 이 문제에 해당하는 것)
+2단계: (해설의 조건 정리 — 이 문제의 실제 수치 포함)
+3단계: (해설의 계산 과정 — 실제 식과 수치 그대로)
+4단계: (해설의 최종 정답 도출)
+▶ 4. 풀이 피드백
+(반드시 정답 해설과 학생 풀이를 직접 비교하여 작성)
+(X: 학생이 틀린 구체적 단계 + 해설 기준 올바른 식/수치 + 틀린 이유 + 개선점)
+(O+개선점: 해설과 비교한 구체적 개선점만)
+(O+완벽: 항목 전체 생략)
+▶ 5. 역량 점수
+- 개념 이해도: X점 / 10점
+- 풀이 전개력: X점 / 10점
+- 문제 해석력: X점 / 10점
+- 합계: XX점 / 30점`;
+
+  const FMT_TOTAL=`
+=============================
+총평
+=============================
+▶ 전체 점수표
+SCORE_TABLE_START
+(각줄: 문제N|O또는X|개념|전개|해석|합계)
+SCORE_TABLE_END
+▶ 강점
+(두 문장)
+▶ 보완할 점
+(두 문장)
+▶ 학습 방향
+(두 문장)`;
+
+  if(currentMode==='A'){
+    let problems=[];
+    for(let i=1;i<=problemCount;i++){
+      const q=document.getElementById(`questions_${i}`)?.value.trim()||'';
+      const a=document.getElementById(`answers_${i}`)?.value.trim()||'';
+      const s=document.getElementById(`solutions_${i}`)?.value.trim()||'';
+      const qI=imageStore.questions[i]||[],aI=imageStore.answers[i]||[],sI=imageStore.solutions[i]||[];
+      if(!q&&!a&&!s&&!qI.length&&!aI.length&&!sI.length)continue;
+      problems.push({num:i,q,a,s,qI,aI,sI});
+    }
+    if(!problems.length){alert('문제를 입력해주세요.');goBack();return;}
+    problems.forEach(p=>{
+      parts.push({type:'text',text:`\n===== 문제 ${p.num} =====`});
+      parts.push({type:'text',text:`[문제]\n${p.q||''}`});
+      p.qI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      parts.push({type:'text',text:`[정답 및 해설]\n${p.a||''}`});
+      p.aI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      parts.push({type:'text',text:`[학생 풀이]\n${p.s||''}`});
+      p.sI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+    });
+    feedbackFormat=`위 입력을 분석하여 각 문제마다 아래 형식으로 피드백을 작성하세요.\n${problems.map(()=>FMT_PROBLEM).join('\n')}\n모든 문제 완료 후:${FMT_TOTAL}`;
+  } else {
+    const qT=document.getElementById('bulk-text-q').value.trim();
+    const aT=document.getElementById('bulk-text-a').value.trim();
+    const sT=document.getElementById('bulk-text-s').value.trim();
+    const range=document.getElementById('bulk-range').value.trim();
+    const ok=qT||aT||sT||bulkStore.q.length||bulkStore.a.length||bulkStore.s.length;
+    if(!ok){alert('사진 또는 텍스트를 입력해주세요.');goBack();return;}
+    parts.push({type:'text',text:'[문제 사진 / 내용]'});
+    if(qT)parts.push({type:'text',text:qT});
+    bulkStore.q.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+    parts.push({type:'text',text:'\n[정답 및 해설 사진 / 내용]'});
+    if(aT)parts.push({type:'text',text:aT});
+    bulkStore.a.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+    parts.push({type:'text',text:'\n[학생 풀이 사진 / 내용]'});
+    if(sT)parts.push({type:'text',text:sT});
+    bulkStore.s.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+    feedbackFormat=`사진과 내용을 분석하세요.\n${range?`분석 대상: ${range}`:'사진에서 모든 문제를 자동으로 찾아 분석하세요.'}\n사진 한 장에 여러 문제가 있을 수 있습니다. 문제지·정답지·학생풀이를 매칭하여 각 문제별로 아래 형식을 반복하세요.\n${FMT_PROBLEM}\n(문제 수만큼 위 형식 반복)\n모든 문제 완료 후:${FMT_TOTAL}`;
+  }
+  parts.push({type:'text',text:feedbackFormat});
+
+  try{
+    const res=await fetch('/api/proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:8000,stream:true,system:SYSTEM,messages:[{role:'user',content:parts}]})
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
+    rc.innerHTML=''; let fullText='';
+    const sc=document.createElement('div');sc.className='stream-card';
+    sc.innerHTML=`<div class="stream-text" id="streamText"></div>`;rc.appendChild(sc);
+    const streamEl=document.getElementById('streamText');
+    const reader=res.body.getReader();const decoder=new TextDecoder();let buf='';
+    while(true){
+      const{done,value}=await reader.read();if(done)break;
+      buf+=decoder.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        const d=line.slice(6).trim();if(d==='[DONE]')continue;
+        try{const j=JSON.parse(d);if(j.type==='content_block_delta'&&j.delta?.text){fullText+=j.delta.text;streamEl.textContent=fullText;}}catch{}
+      }
+    }
+    renderResult(fullText,rc);
+  }catch(e){
+    rc.innerHTML=`<div class="error-box">⚠️ 오류: ${e.message}<br><small>API Key를 확인하거나 잠시 후 다시 시도해주세요.</small></div><button class="back-btn" onclick="goBack()" style="margin-top:8px">← 다시 시도</button>`;
+  }
+}
+
+function extractNum(text,label){
+  const m=text.match(new RegExp(label+'[\\s\\S]*?([\\d]+)점\\s*/\\s*10점','i'));
+  return m?parseInt(m[1]):null;
+}
+
+function renderResult(text,container){
+  container.innerHTML='';
+  const blocks=text.split(/={5,}/g).filter(b=>b.trim());
+  let pbs=[],totalBlock=null;
+  for(const block of blocks){
+    const m=block.match(/문제\s*(\d+)\s*피드백/);
+    if(m)pbs.push({num:parseInt(m[1]),text:block});
+    else if(block.includes('총평'))totalBlock=block;
+  }
+  if(!pbs.length){
+    const raw=document.createElement('div');raw.className='stream-card';
+    raw.innerHTML=`<div class="stream-text">${text}</div>`;container.appendChild(raw);return;
+  }
+  const scoreRows=[];
+  for(const pb of pbs){
+    const t=pb.text;
+    const ansM=t.match(/▶\s*1\.\s*정답\s*\n([^\n▶]+)/);
+    const oxM=t.match(/▶\s*2\.\s*정오답[^\n]*\n([^\n▶]+)/);
+    const flowM=t.match(/▶\s*3\.\s*문제 풀이법([\s\S]*?)(?=▶|$)/);
+    const fbM=t.match(/▶\s*4\.\s*풀이 피드백([\s\S]*?)(?=▶|$)/);
+    const ans=ansM?ansM[1].trim():'?';
+    const ox=oxM?oxM[1].trim().toUpperCase():'?';
+    const isO=ox==='O';
+    const c1=extractNum(t,'개념 이해도'),c2=extractNum(t,'풀이 전개력'),c3=extractNum(t,'문제 해석력');
+    const total=(c1||0)+(c2||0)+(c3||0);
+    scoreRows.push({num:pb.num,ox,c1,c2,c3,total});
+    const card=document.createElement('div');card.className='prob-card';
+    const hd=document.createElement('div');hd.className='prob-card-header';
+    hd.innerHTML=`<div class="prob-card-left"><span class="prob-card-num">문제 ${pb.num}</span><span class="prob-card-title">정답 ${ans}</span></div><span class="ox-badge ${isO?'ox-o':'ox-x'}">${ox}</span>`;
+    card.appendChild(hd);
+    const body=document.createElement('div');body.className='prob-card-body';
+    body.innerHTML=`<div class="answer-chip">📌 정답: ${ans}</div>`;
+    if(flowM){
+      const stepLines=flowM[1].trim().split('\n').filter(l=>l.match(/^\d단계/));
+      let fh=`<div class="sec-block"><div class="sec-title">풀이 흐름</div><div class="flow-steps">`;
+      if(stepLines.length){stepLines.forEach(l=>{const nm=l.match(/^(\d)단계[:\s]+(.*)/);if(nm)fh+=`<div class="flow-step"><span class="flow-step-num">${nm[1]}</span><span class="flow-step-text">${nm[2]}</span></div>`;});}
+      else{fh+=`<div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${flowM[1].trim()}</div>`;}
+      fh+=`</div></div>`;body.innerHTML+=fh;
+    }
+    if(fbM){const fbText=fbM[1].trim();if(fbText)body.innerHTML+=`<div class="sec-block"><div class="sec-title">${isO?'풀이 방식 개선점':'틀린 부분 피드백'}</div><div class="${isO?'fb-improve':'fb-block'}">${fbText}</div></div>`;}
+    body.innerHTML+=`<div class="score-summary"><div class="score-pill"><span class="score-pill-label">개념 이해도</span><span class="score-pill-val">${c1??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill"><span class="score-pill-label">풀이 전개력</span><span class="score-pill-val">${c2??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill"><span class="score-pill-label">문제 해석력</span><span class="score-pill-val">${c3??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill total"><span class="score-pill-label">합계</span><span class="score-pill-val">${total}</span><span class="score-pill-sub">/ 30점</span></div></div>`;
+    card.appendChild(body);container.appendChild(card);
+  }
+  if(scoreRows.length){
+    const a1=(scoreRows.reduce((s,r)=>s+(r.c1||0),0)/scoreRows.length).toFixed(1);
+    const a2=(scoreRows.reduce((s,r)=>s+(r.c2||0),0)/scoreRows.length).toFixed(1);
+    const a3=(scoreRows.reduce((s,r)=>s+(r.c3||0),0)/scoreRows.length).toFixed(1);
+    const aT=(scoreRows.reduce((s,r)=>s+r.total,0)/scoreRows.length).toFixed(1);
+    const sc=document.createElement('div');sc.className='summary-card';
+    sc.innerHTML=`<div class="summary-card-header">📊 전체 점수표</div><table class="summary-table"><tr><th>문제</th><th>정오답</th><th>개념 이해도</th><th>풀이 전개력</th><th>문제 해석력</th><th>합계</th></tr>${scoreRows.map(r=>`<tr><td>${r.num}번</td><td><span style="font-weight:700;color:${r.ox==='O'?'var(--green)':'var(--red)'}">${r.ox}</span></td><td><span class="mono">${r.c1??'?'}/10</span></td><td><span class="mono">${r.c2??'?'}/10</span></td><td><span class="mono">${r.c3??'?'}/10</span></td><td><span class="mono">${r.total}/30</span></td></tr>`).join('')}<tr><td>평균</td><td>-</td><td><span class="mono">${a1}</span></td><td><span class="mono">${a2}</span></td><td><span class="mono">${a3}</span></td><td><span class="mono">${aT}</span></td></tr></table>`;
+    container.appendChild(sc);
+  }
+  if(totalBlock){
+    const sM=totalBlock.match(/▶\s*강점([\s\S]*?)(?=▶|$)/);
+    const wM=totalBlock.match(/▶\s*보완할 점([\s\S]*?)(?=▶|$)/);
+    const dM=totalBlock.match(/▶\s*학습 방향([\s\S]*?)(?=▶|={3,}|$)/);
+    const tc=document.createElement('div');tc.className='total-card';
+    tc.innerHTML=`<div class="total-card-header">💬 총평</div><div class="total-card-body">${sM?`<div class="total-section"><div class="total-section-title">💪 강점</div><div class="total-section-content">${sM[1].trim()}</div></div>`:''} ${wM?`<div class="total-section"><div class="total-section-title">📌 보완할 점</div><div class="total-section-content">${wM[1].trim()}</div></div>`:''} ${dM?`<div class="total-section"><div class="total-section-title">📚 학습 방향</div><div class="total-section-content">${dM[1].trim()}</div></div>`:''}</div>`;
+    container.appendChild(tc);
+  }
+}
+
+initCountBtns();
+renderInputs();
+</script>
+</body>
+</html>
