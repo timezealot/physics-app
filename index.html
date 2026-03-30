@@ -145,6 +145,8 @@ textarea::placeholder{color:var(--text3);}
 .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;}
 .lightbox-close{position:absolute;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -257,7 +259,10 @@ textarea::placeholder{color:var(--text3);}
   <div id="resultView" class="result-section">
     <div class="result-header">
       <div class="result-title">📊 분석 결과</div>
-      <button class="back-btn" onclick="goBack()">← 다시 입력</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="back-btn" id="pdfBtn" onclick="downloadPDF()" style="background:var(--accent);color:#fff;border-color:var(--accent)">⬇ PDF 저장</button>
+        <button class="back-btn" onclick="goBack()">← 다시 입력</button>
+      </div>
     </div>
     <div id="resultContent"></div>
     <div style="height:80px"></div>
@@ -776,6 +781,65 @@ function renderResult(text, container){
   // 혹시 표가 안 닫혔으면 닫기
   if(html.includes('<tbody>') && !html.includes('</tbody>')) html += `</tbody></table></div>`;
   container.innerHTML = html || `<div class="prob-card"><div style="padding:16px 18px;font-size:13px;color:var(--text2)">결과가 없습니다.</div></div>`;
+}
+
+async function downloadPDF(){
+  const btn = document.getElementById('pdfBtn');
+  const content = document.getElementById('resultContent');
+  if(!content || !content.innerHTML.trim()){ alert('먼저 분석을 완료해주세요.'); return; }
+
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+
+    // PDF용 임시 렌더링 컨테이너 (화면 밖)
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;top:-99999px;left:0;width:750px;padding:36px;background:#f5f4f0;font-family:sans-serif;box-sizing:border-box;';
+    wrapper.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid #2563eb">
+        <div style="width:32px;height:32px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px">S</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#1a1917">물리1 풀이 분석기 — 분석 결과</div>
+          <div style="font-size:11px;color:#a8a49e">${new Date().toLocaleDateString('ko-KR')} 생성</div>
+        </div>
+      </div>
+      ${content.innerHTML}`;
+    document.body.appendChild(wrapper);
+
+    await new Promise(r => setTimeout(r, 400));
+
+    const canvas = await html2canvas(wrapper, {
+      scale: 2, useCORS: true, backgroundColor: '#f5f4f0', logging: false
+    });
+    document.body.removeChild(wrapper);
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const mg = 8;
+    const cw = pw - mg * 2;
+    const scaledH = (canvas.height * cw) / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const pageH = ph - mg * 2;
+    let y = 0;
+
+    while(y < scaledH) {
+      if(y > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', mg, mg - y, cw, scaledH);
+      y += pageH;
+    }
+
+    const d = new Date();
+    pdf.save(`물리1_분석결과_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.pdf`);
+
+  } catch(e) {
+    alert('PDF 생성 오류: ' + e.message);
+  } finally {
+    btn.textContent = '⬇ PDF 저장';
+    btn.disabled = false;
+  }
 }
 
 initCountBtns();
