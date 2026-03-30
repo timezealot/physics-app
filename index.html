@@ -585,8 +585,8 @@ SCORE_TABLE_END
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
     rc.innerHTML=''; let fullText='';
-    const sc=document.createElement('div');sc.className='stream-card';
-    sc.innerHTML=`<div class="stream-text" id="streamText"></div>`;rc.appendChild(sc);
+    const sc=document.createElement('div');sc.className='prob-card';
+    sc.innerHTML=`<div class="prob-card-body"><div class="stream-text" id="streamText"></div></div>`;rc.appendChild(sc);
     const streamEl=document.getElementById('streamText');
     const reader=res.body.getReader();const decoder=new TextDecoder();let buf='';
     while(true){
@@ -599,6 +599,8 @@ SCORE_TABLE_END
         try{const j=JSON.parse(d);if(j.type==='content_block_delta'&&j.delta?.text){fullText+=j.delta.text;streamEl.textContent=fullText;}}catch{}
       }
     }
+    // 스트리밍 카드 제거 후 파싱 결과로 교체
+    rc.innerHTML='';
     renderResult(fullText,rc);
   }catch(e){
     rc.innerHTML=`<div class="error-box">⚠️ 오류: ${e.message}<br><small>API Key를 확인하거나 잠시 후 다시 시도해주세요.</small></div><button class="back-btn" onclick="goBack()" style="margin-top:8px">← 다시 시도</button>`;
@@ -606,52 +608,111 @@ SCORE_TABLE_END
 }
 
 function extractNum(text,label){
-  const m=text.match(new RegExp(label+'[\\s\\S]*?([\\d]+)점\\s*/\\s*10점','i'));
-  return m?parseInt(m[1]):null;
+  // 다양한 형식 대응: "X점 / 10점", "X점/10점", "X / 10점"
+  const patterns=[
+    new RegExp(label+'[^\\n]*\\n[^\\n]*?([0-9]+)점\\s*/\\s*10점','i'),
+    new RegExp(label+'[\\s\\S]*?:\\s*([0-9]+)점\\s*/\\s*10점','i'),
+    new RegExp(label+'[\\s\\S]*?([0-9]+)\\s*/\\s*10점','i'),
+  ];
+  for(const p of patterns){const m=text.match(p);if(m)return parseInt(m[1]);}
+  return null;
 }
 
 function renderResult(text,container){
   container.innerHTML='';
-  const blocks=text.split(/={5,}/g).filter(b=>b.trim());
+
+  // ── 블록 분리: ===== 기준 ──
+  const blocks=text.split(/={4,}/g).filter(b=>b.trim());
   let pbs=[],totalBlock=null;
   for(const block of blocks){
     const m=block.match(/문제\s*(\d+)\s*피드백/);
-    if(m)pbs.push({num:parseInt(m[1]),text:block});
-    else if(block.includes('총평'))totalBlock=block;
+    if(m) pbs.push({num:parseInt(m[1]),text:block});
+    else if(block.includes('총평')) totalBlock=block;
   }
+
+  // 파싱 실패 시 raw 텍스트 그대로 표시
   if(!pbs.length){
-    const raw=document.createElement('div');raw.className='stream-card';
-    raw.innerHTML=`<div class="stream-text">${text}</div>`;container.appendChild(raw);return;
+    const raw=document.createElement('div');raw.className='prob-card';
+    raw.innerHTML=`<div class="prob-card-body"><div class="stream-text">${text.replace(/</g,'&lt;')}</div></div>`;
+    container.appendChild(raw);return;
   }
+
   const scoreRows=[];
   for(const pb of pbs){
     const t=pb.text;
-    const ansM=t.match(/▶\s*1\.\s*정답\s*\n([^\n▶]+)/);
-    const oxM=t.match(/▶\s*2\.\s*정오답[^\n]*\n([^\n▶]+)/);
-    const flowM=t.match(/▶\s*3\.\s*문제 풀이법([\s\S]*?)(?=▶|$)/);
-    const fbM=t.match(/▶\s*4\.\s*풀이 피드백([\s\S]*?)(?=▶|$)/);
+
+    // 정답 파싱 — ▶ 1. 정답 다음 줄
+    const ansM=t.match(/▶\s*1[.)]\s*정답\s*\n\s*([^\n▶]+)/);
+    // 정오답 파싱 — ▶ 2. 정오답 다음 줄
+    const oxM=t.match(/▶\s*2[.)]\s*정오답[^\n]*\n\s*([^\n▶]+)/);
+    // 풀이법 파싱
+    const flowM=t.match(/▶\s*3[.)]\s*문제 풀이법([\s\S]*?)(?=▶\s*[45]|$)/);
+    // 피드백 파싱
+    const fbM=t.match(/▶\s*4[.)]\s*풀이 피드백([\s\S]*?)(?=▶\s*5|$)/);
+
     const ans=ansM?ansM[1].trim():'?';
-    const ox=oxM?oxM[1].trim().toUpperCase():'?';
+    const ox=(oxM?oxM[1].trim():'?').replace(/[^OXox]/g,'').toUpperCase()||'?';
     const isO=ox==='O';
-    const c1=extractNum(t,'개념 이해도'),c2=extractNum(t,'풀이 전개력'),c3=extractNum(t,'문제 해석력');
+    const c1=extractNum(t,'개념 이해도');
+    const c2=extractNum(t,'풀이 전개력');
+    const c3=extractNum(t,'문제 해석력');
     const total=(c1||0)+(c2||0)+(c3||0);
     scoreRows.push({num:pb.num,ox,c1,c2,c3,total});
+
     const card=document.createElement('div');card.className='prob-card';
+
+    // 헤더
     const hd=document.createElement('div');hd.className='prob-card-header';
-    hd.innerHTML=`<div class="prob-card-left"><span class="prob-card-num">문제 ${pb.num}</span><span class="prob-card-title">정답 ${ans}</span></div><span class="ox-badge ${isO?'ox-o':'ox-x'}">${ox}</span>`;
+    hd.innerHTML=`
+      <div class="prob-card-left">
+        <span class="prob-card-num">문제 ${pb.num}</span>
+        <span class="prob-card-title">정답 ${ans}</span>
+      </div>
+      <span class="ox-badge ${isO?'ox-o':'ox-x'}">${ox}</span>`;
     card.appendChild(hd);
+
+    // 바디
     const body=document.createElement('div');body.className='prob-card-body';
     body.innerHTML=`<div class="answer-chip">📌 정답: ${ans}</div>`;
+
+    // 풀이 흐름
     if(flowM){
-      const stepLines=flowM[1].trim().split('\n').filter(l=>l.match(/^\d단계/));
+      const flowText=flowM[1].trim();
+      const stepLines=flowText.split('\n').filter(l=>/^\d단계/.test(l.trim()));
       let fh=`<div class="sec-block"><div class="sec-title">풀이 흐름</div><div class="flow-steps">`;
-      if(stepLines.length){stepLines.forEach(l=>{const nm=l.match(/^(\d)단계[:\s]+(.*)/);if(nm)fh+=`<div class="flow-step"><span class="flow-step-num">${nm[1]}</span><span class="flow-step-text">${nm[2]}</span></div>`;});}
-      else{fh+=`<div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${flowM[1].trim()}</div>`;}
-      fh+=`</div></div>`;body.innerHTML+=fh;
+      if(stepLines.length){
+        stepLines.forEach(l=>{
+          const nm=l.trim().match(/^(\d)단계[:\s]+(.*)/);
+          if(nm) fh+=`<div class="flow-step"><span class="flow-step-num">${nm[1]}</span><span class="flow-step-text">${nm[2]}</span></div>`;
+        });
+      } else {
+        fh+=`<div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${flowText.replace(/</g,'&lt;')}</div>`;
+      }
+      fh+=`</div></div>`;
+      body.innerHTML+=fh;
     }
-    if(fbM){const fbText=fbM[1].trim();if(fbText)body.innerHTML+=`<div class="sec-block"><div class="sec-title">${isO?'풀이 방식 개선점':'틀린 부분 피드백'}</div><div class="${isO?'fb-improve':'fb-block'}">${fbText}</div></div>`;}
-    body.innerHTML+=`<div class="score-summary"><div class="score-pill"><span class="score-pill-label">개념 이해도</span><span class="score-pill-val">${c1??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill"><span class="score-pill-label">풀이 전개력</span><span class="score-pill-val">${c2??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill"><span class="score-pill-label">문제 해석력</span><span class="score-pill-val">${c3??'?'}</span><span class="score-pill-sub">/ 10점</span></div><div class="score-pill total"><span class="score-pill-label">합계</span><span class="score-pill-val">${total}</span><span class="score-pill-sub">/ 30점</span></div></div>`;
-    card.appendChild(body);container.appendChild(card);
+
+    // 피드백
+    if(fbM){
+      const fbText=fbM[1].trim();
+      if(fbText){
+        const cls=isO?'fb-improve':'fb-block';
+        const title=isO?'풀이 방식 개선점':'틀린 부분 피드백';
+        body.innerHTML+=`<div class="sec-block"><div class="sec-title">${title}</div><div class="${cls}">${fbText.replace(/</g,'&lt;')}</div></div>`;
+      }
+    }
+
+    // 점수
+    body.innerHTML+=`
+      <div class="score-summary">
+        <div class="score-pill"><span class="score-pill-label">개념 이해도</span><span class="score-pill-val">${c1??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
+        <div class="score-pill"><span class="score-pill-label">풀이 전개력</span><span class="score-pill-val">${c2??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
+        <div class="score-pill"><span class="score-pill-label">문제 해석력</span><span class="score-pill-val">${c3??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
+        <div class="score-pill total"><span class="score-pill-label">합계</span><span class="score-pill-val">${total}</span><span class="score-pill-sub">/ 30점</span></div>
+      </div>`;
+
+    card.appendChild(body);
+    container.appendChild(card);
   }
   if(scoreRows.length){
     const a1=(scoreRows.reduce((s,r)=>s+(r.c1||0),0)/scoreRows.length).toFixed(1);
