@@ -555,34 +555,47 @@ async function analyze(){
 function renderResult(text,container){
   container.innerHTML='';
   const lines=text.split('\n');
-  let html='',inCard=false;
-  const flush=()=>{if(inCard){html+=`</div></div>`;inCard=false;}};
+  let html='',inCard=false,inScoreGrid=false,inTable=false;
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i],trimmed=line.trim();
+  // 열린 요소 닫기
+  const closeScoreGrid=()=>{if(inScoreGrid){html+=`</div>`;inScoreGrid=false;}};
+  const closeTable=()=>{if(inTable){html+=`</tbody></table></div>`;inTable=false;}};
+  const closeCard=()=>{closeScoreGrid();closeTable();if(inCard){html+=`</div></div>`;inCard=false;}};
 
+  const openCard=(title,isSummary)=>{
+    closeCard();
+    html+=`<div class="${isSummary?'total-card':'prob-card'}" style="margin-bottom:14px">`;
+    html+=`<div class="${isSummary?'total-card-header':'prob-card-header'}" style="padding:14px 18px;font-size:13px;font-weight:700">${esc(title)}</div>`;
+    html+=`<div style="padding:16px 18px">`;
+    inCard=true;
+  };
+
+  for(let i=0;i<lines.length;i++){
+    const trimmed=lines[i].trim();
+
+    // ===== 구분선 → 새 카드
     if(/^={4,}/.test(trimmed)){
-      flush();
-      const nextLine=(lines[i+1]||'').trim();
-      if(nextLine){
+      const next=(lines[i+1]||'').trim();
+      if(next&&!/^={4,}/.test(next)){
         i++;
-        const isSummary=nextLine.includes('총평');
-        html+=`<div class="${isSummary?'total-card':'prob-card'}" style="margin-bottom:14px">`;
-        html+=`<div class="${isSummary?'total-card-header':'prob-card-header'}" style="padding:14px 18px;font-size:13px;font-weight:700">${esc(nextLine)}</div>`;
-        html+=`<div style="padding:16px 18px">`;
-        inCard=true;
+        openCard(next,next.includes('총평'));
         if((lines[i+1]||'').trim().startsWith('='))i++;
       }
       continue;
     }
+
+    // 카드가 없으면 자동 생성
     if(!inCard){html+=`<div class="prob-card" style="margin-bottom:14px"><div style="padding:16px 18px">`;inCard=true;}
 
+    // ▶ 항목 제목
     if(/^▶/.test(trimmed)){
+      closeScoreGrid();closeTable();
       html+=`<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--accent);border-radius:2px;display:inline-block;flex-shrink:0"></span>${esc(trimmed.replace(/^▶\s*/,''))}</div>`;
       continue;
     }
 
+    // 풀이 단계
     if(/^\d단계[:\s]/.test(trimmed)){
       const nm=trimmed.match(/^(\d)단계[:\s]+(.*)/);
       if(nm){
@@ -591,54 +604,88 @@ function renderResult(text,container){
       }
     }
 
+    // - 항목들
     if(/^-\s+/.test(trimmed)){
-      const scoreLine=trimmed.match(/^-\s+(개념 이해도|풀이 전개력|문제 해석력):\s*(\d+)점\s*\/\s*10점(?:\s*\|\s*이유:\s*(.*))?/);
-      const totalLine=trimmed.match(/^-\s+(합계):\s*(\d+)점\s*\/\s*30점/);
-      if(totalLine){
-        html+=`</div>`;
-        html+=`<div style="display:flex;align-items:center;justify-content:flex-end;margin-top:6px;gap:6px"><span style="font-size:12px;color:var(--text2)">합계</span><span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${totalLine[2]}</span><span style="font-size:11px;color:var(--text3)">/ 30점</span></div>`;
-        continue;
-      }
-      if(scoreLine){
-        const label=scoreLine[1],score=parseInt(scoreLine[2]),reason=scoreLine[3]||'';
+      const scoreM=trimmed.match(/^-\s+(개념 이해도|풀이 전개력|문제 해석력):\s*(\d+)점\s*\/\s*10점(?:\s*\|\s*이유:\s*(.*))?/);
+      const totalM=trimmed.match(/^-\s+합계:\s*(\d+)점\s*\/\s*30점/);
+
+      if(scoreM){
+        const label=scoreM[1],score=parseInt(scoreM[2]),reason=scoreM[3]||'';
         const isPerfect=score===10;
-        const scoreColor=isPerfect?'var(--green)':score>=8?'var(--accent)':score>=6?'var(--yellow)':'var(--red)';
-        if(label==='개념 이해도')html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">`;
-        html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px"><div style="font-size:10px;color:var(--text2);margin-bottom:4px">${esc(label)}</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${scoreColor};line-height:1">${score}</div><div style="font-size:9px;color:var(--text3);margin-bottom:6px">/ 10점</div>${!isPerfect&&reason&&reason!=='만점'?`<div style="font-size:11px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:6px;margin-top:2px">${esc(reason)}</div>`:''}</div>`;
+        const col=isPerfect?'var(--green)':score>=8?'var(--accent)':score>=6?'var(--yellow)':'var(--red)';
+        // 첫 번째 역량 항목에서 grid 열기
+        if(label==='개념 이해도'){
+          closeScoreGrid();
+          html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">`;
+          inScoreGrid=true;
+        }
+        html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px">`;
+        html+=`<div style="font-size:10px;color:var(--text2);margin-bottom:4px">${esc(label)}</div>`;
+        html+=`<div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${col};line-height:1">${score}</div>`;
+        html+=`<div style="font-size:9px;color:var(--text3);margin-bottom:6px">/ 10점</div>`;
+        if(!isPerfect&&reason&&reason!=='만점'){
+          html+=`<div style="font-size:11px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:6px;margin-top:2px">${esc(reason)}</div>`;
+        }
+        html+=`</div>`;
         continue;
       }
+
+      if(totalM){
+        closeScoreGrid();
+        html+=`<div style="display:flex;align-items:center;justify-content:flex-end;margin-top:6px;gap:6px">`;
+        html+=`<span style="font-size:12px;color:var(--text2)">합계</span>`;
+        html+=`<span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${totalM[1]}</span>`;
+        html+=`<span style="font-size:11px;color:var(--text3)">/ 30점</span></div>`;
+        continue;
+      }
+
+      // 일반 - 항목
+      closeScoreGrid();
       html+=`<div style="font-size:13px;color:var(--text);line-height:1.8;padding:4px 0 4px 12px;border-left:2px solid var(--border);margin-bottom:2px">${esc(trimmed)}</div>`;
       continue;
     }
 
+    // 파이프 표
     if(/^\|/.test(trimmed)){
-      if(/^\|[-|\s]+\|$/.test(trimmed))continue;
+      // 구분선 줄 건너뛰기
+      if(/^\|[-| ]+\|$/.test(trimmed))continue;
       const cells=trimmed.split('|').map(c=>c.trim()).filter(c=>c);
       if(!cells.length)continue;
+
       const isHeader=cells.some(c=>['문제','정오답','개념','풀이','해석력','합계'].includes(c));
-      if(isHeader&&!html.includes('score-table-wrap')){
-        html+=`<div class="score-table-wrap" style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>`;
+      if(isHeader&&!inTable){
+        closeScoreGrid();
+        html+=`<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>`;
         cells.forEach(c=>{html+=`<th style="background:var(--surface2);color:var(--text2);padding:9px 12px;text-align:center;border-bottom:2px solid var(--border);font-weight:600;white-space:nowrap">${esc(c)}</th>`;});
         html+=`</tr></thead><tbody>`;
+        inTable=true;
         continue;
       }
-      const isAvg=cells[0]==='평균'||cells[0].includes('평균');
-      html+=`<tr style="${isAvg?'background:var(--surface2);font-weight:700':''}">`;
-      cells.forEach(c=>{
-        const oxColor=c==='O'?'var(--green)':c==='X'?'var(--red)':'';
-        html+=`<td style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);${oxColor?`color:${oxColor};font-weight:700`:''}">${esc(c)}</td>`;
-      });
-      html+=`</tr>`;
-      continue;
+
+      if(inTable){
+        const isAvg=cells[0]==='평균'||cells[0].includes('평균');
+        html+=`<tr style="${isAvg?'background:var(--surface2);font-weight:700':''}">`;
+        cells.forEach(c=>{
+          const oxColor=c==='O'?'var(--green)':c==='X'?'var(--red)':'';
+          html+=`<td style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);${oxColor?`color:${oxColor};font-weight:700`:''}">${esc(c)}</td>`;
+        });
+        html+=`</tr>`;
+        continue;
+      }
     }
 
-    if(html.includes('<tbody>')&&!html.includes('</tbody>')){html+=`</tbody></table></div>`;}
+    // 파이프 표 다음 일반 줄 → 표 닫기
+    if(inTable){closeTable();}
+
+    // 빈 줄
     if(!trimmed){html+=`<div style="height:6px"></div>`;continue;}
+
+    // 일반 텍스트
+    closeScoreGrid();
     html+=`<div style="font-size:13px;color:var(--text);line-height:1.8">${esc(trimmed)}</div>`;
   }
 
-  flush();
-  if(html.includes('<tbody>')&&!html.includes('</tbody>'))html+=`</tbody></table></div>`;
+  closeCard();
   container.innerHTML=html||`<div class="prob-card"><div style="padding:16px 18px;font-size:13px;color:var(--text2)">결과가 없습니다.</div></div>`;
 }
 
@@ -651,14 +698,185 @@ async function downloadPDF(){
     const{jsPDF}=window.jspdf;
     const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-    const mg=10,cw=pw-mg*2,pageContentH=ph-mg*2;
+    const mg=8,cw=pw-mg*2,pageContentH=ph-mg*2;
     const today=new Date().toLocaleDateString('ko-KR');
     const d=new Date();
     const fname=`물리1_분석결과_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.pdf`;
 
-    const renderSection=async(el,isFirst)=>{
+    // PDF 전용 컴팩트 CSS — 4문제가 A4 한 페이지에 맞도록 축소
+    const compactCSS=`
+      *{box-sizing:border-box;margin:0;padding:0;font-family:'Noto Sans KR',sans-serif;}
+      body{background:#f5f4f0;color:#1a1917;font-size:11px;line-height:1.5;}
+      .prob-card{background:#fff;border:1px solid #e2e0d8;border-radius:8px;margin-bottom:7px;overflow:hidden;}
+      .prob-card-header{padding:6px 10px;background:#f0efe9;border-bottom:1px solid #e2e0d8;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;}
+      .card-body{padding:8px 10px;}
+      .section-title{font-size:9px;font-weight:700;color:#6b6860;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px;display:flex;align-items:center;gap:4px;}
+      .section-bar{width:2px;height:9px;background:#2563eb;border-radius:1px;display:inline-block;flex-shrink:0;}
+      .step{display:flex;gap:6px;align-items:flex-start;background:#f0efe9;border-radius:5px;padding:4px 7px;margin-bottom:3px;font-size:10px;}
+      .step-num{font-weight:700;color:#2563eb;background:#dbeafe;width:14px;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;}
+      .fb-item{font-size:10px;color:#1a1917;line-height:1.5;padding:2px 0 2px 8px;border-left:2px solid #e2e0d8;margin-bottom:2px;}
+      .score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;}
+      .score-box{background:#fff;border:1px solid #e2e0d8;border-radius:6px;padding:5px 6px;}
+      .score-label{font-size:8px;color:#6b6860;margin-bottom:2px;}
+      .score-val{font-weight:700;font-size:14px;line-height:1;}
+      .score-sub{font-size:7px;color:#a8a49e;margin-bottom:3px;}
+      .score-reason{font-size:8px;color:#6b6860;line-height:1.3;border-top:1px solid #e2e0d8;padding-top:3px;margin-top:2px;}
+      .total-row{display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-top:5px;}
+      .total-label{font-size:10px;color:#6b6860;}
+      .total-val{font-weight:700;font-size:15px;color:#16a34a;}
+      .total-sub{font-size:9px;color:#a8a49e;}
+      .summary-card{background:#fff;border:1px solid #e2e0d8;border-radius:8px;overflow:hidden;margin-bottom:8px;}
+      .summary-header{padding:8px 10px;background:#1a1917;color:#fff;font-size:11px;font-weight:700;}
+      .summary-body{padding:10px;}
+      table{width:100%;border-collapse:collapse;font-size:10px;}
+      th{background:#f0efe9;color:#6b6860;padding:6px 8px;text-align:center;border-bottom:2px solid #e2e0d8;font-weight:600;}
+      td{padding:5px 8px;text-align:center;border-bottom:1px solid #e2e0d8;}
+      tr:last-child td{border-bottom:none;font-weight:700;background:#f0efe9;}
+      .ox-o{color:#16a34a;font-weight:700;}
+      .ox-x{color:#dc2626;font-weight:700;}
+      .text-line{font-size:10px;color:#1a1917;line-height:1.6;margin-bottom:2px;}
+      .section-content{font-size:10px;color:#1a1917;line-height:1.6;margin-bottom:6px;}
+    `;
+
+    // 문제 카드 → 컴팩트 HTML 변환
+    const cardToCompact=(card)=>{
+      const html=card.innerHTML;
+      const lines=card.innerText.split('\n').map(l=>l.trim()).filter(l=>l);
+
+      let out='';
+      // 헤더 추출
+      const hdr=card.querySelector('.prob-card-header,.total-card-header,.summary-card-header');
+      const hdrText=hdr?hdr.innerText.trim():'';
+
+      if(card.classList.contains('summary-card')||card.classList.contains('total-card')){
+        out+=`<div class="summary-card"><div class="summary-header">${hdrText}</div><div class="summary-body">`;
+        // 표 처리
+        const table=card.querySelector('table');
+        if(table){
+          out+=`<table>`;
+          table.querySelectorAll('tr').forEach((tr,ri)=>{
+            out+=`<tr>`;
+            tr.querySelectorAll('th,td').forEach(cell=>{
+              const tag=cell.tagName.toLowerCase();
+              const txt=cell.innerText.trim();
+              const cls=txt==='O'?'ox-o':txt==='X'?'ox-x':'';
+              out+=`<${tag}${cls?` class="${cls}"`:''} style="${cell.style.cssText||''}">${txt}</${tag}>`;
+            });
+            out+=`</tr>`;
+          });
+          out+=`</table>`;
+        }
+        // 텍스트 섹션
+        card.querySelectorAll('[style*="total-section"], div > div').forEach(div=>{
+          const t=div.innerText.trim();
+          if(t&&!table?.contains(div))out+=`<div class="text-line">${t}</div>`;
+        });
+        // fallback: just dump inner text sections
+        if(!table){
+          const bodyDiv=card.querySelector('[style*="padding:16px"],.total-card-body');
+          if(bodyDiv){
+            bodyDiv.childNodes.forEach(node=>{
+              if(node.nodeType===1){
+                const t=node.innerText?.trim();
+                if(t)out+=`<div class="text-line">${t}</div>`;
+              }
+            });
+          }
+        }
+        out+=`</div></div>`;
+        return out;
+      }
+
+      // 문제 카드
+      out+=`<div class="prob-card"><div class="prob-card-header"><span>${hdrText}</span>`;
+
+      // 정오답 추출
+      const allText=card.innerText||'';
+      const oxMatch=allText.match(/정오답[^\n]*\n\s*([OX])/);
+      const ox=oxMatch?oxMatch[1]:'?';
+      out+=`<span class="${ox==='O'?'ox-o':'ox-x'}">${ox}</span></div>`;
+      out+=`<div class="card-body">`;
+
+      // innerText 기반 섹션별 파싱
+      const bodyEl=card.querySelector('[style*="padding:16px 18px"]')||card;
+      const bodyLines=(bodyEl.innerText||'').split('\n').map(l=>l.trim()).filter(l=>l);
+
+      let inSteps=false, inFb=false, inScore=false, scoreItems=[];
+
+      for(let i=0;i<bodyLines.length;i++){
+        const l=bodyLines[i];
+        if(/^▶/.test(l)){
+          if(inScore&&scoreItems.length){
+            out+=`<div class="score-grid">`;
+            scoreItems.forEach(si=>out+=si);
+            out+=`</div>`;
+            scoreItems=[];inScore=false;
+          }
+          inSteps=false;inFb=false;
+          out+=`<div class="section-title"><span class="section-bar"></span>${l.replace(/^▶\s*/,'')}</div>`;
+          inSteps=/풀이법/.test(l);
+          inFb=/피드백/.test(l);
+          continue;
+        }
+        if(/^\d단계[:\s]/.test(l)){
+          const nm=l.match(/^(\d)단계[:\s]+(.*)/);
+          if(nm)out+=`<div class="step"><span class="step-num">${nm[1]}</span><span>${nm[2]}</span></div>`;
+          continue;
+        }
+        if(/^-\s+(개념 이해도|풀이 전개력|문제 해석력)/.test(l)){
+          const sm=l.match(/^-\s+(.*?):\s*(\d+)점\s*\/\s*10점(?:\s*\|\s*이유:\s*(.*))?/);
+          if(sm){
+            if(!inScore){inScore=true;}
+            const score=parseInt(sm[2]),reason=sm[3]||'',isPerfect=score===10;
+            const col=isPerfect?'#16a34a':score>=8?'#2563eb':score>=6?'#d97706':'#dc2626';
+            let box=`<div class="score-box"><div class="score-label">${sm[1]}</div><div class="score-val" style="color:${col}">${score}</div><div class="score-sub">/ 10점</div>`;
+            if(!isPerfect&&reason&&reason!=='만점')box+=`<div class="score-reason">${reason}</div>`;
+            box+=`</div>`;
+            scoreItems.push(box);
+          }
+          continue;
+        }
+        if(/^-\s+합계/.test(l)){
+          if(inScore&&scoreItems.length){
+            out+=`<div class="score-grid">`;
+            scoreItems.forEach(si=>out+=si);
+            out+=`</div>`;
+            scoreItems=[];inScore=false;
+          }
+          const tm=l.match(/(\d+)점\s*\/\s*30점/);
+          if(tm)out+=`<div class="total-row"><span class="total-label">합계</span><span class="total-val">${tm[1]}</span><span class="total-sub">/30점</span></div>`;
+          continue;
+        }
+        if(/^-\s+/.test(l)&&inFb){
+          out+=`<div class="fb-item">${l}</div>`;
+          continue;
+        }
+        if(l&&!/^\|[-|]+\|$/.test(l)&&!inScore){
+          out+=`<div class="text-line">${l}</div>`;
+        }
+      }
+      if(inScore&&scoreItems.length){
+        out+=`<div class="score-grid">`;
+        scoreItems.forEach(si=>out+=si);
+        out+=`</div>`;
+      }
+      out+=`</div></div>`;
+      return out;
+    };
+
+    // 페이지 렌더링 헬퍼
+    const renderPage=async(bodyHTML,isFirst)=>{
       if(!isFirst)pdf.addPage();
-      const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#f5f4f0',logging:false});
+      const iframe=document.createElement('iframe');
+      iframe.style.cssText='position:fixed;top:-99999px;left:0;width:794px;height:1123px;border:none;background:#f5f4f0;';
+      document.body.appendChild(iframe);
+      const doc=iframe.contentDocument||iframe.contentWindow.document;
+      doc.open();
+      doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><style>${compactCSS}</style></head><body style="background:#f5f4f0;padding:0;margin:0;">${bodyHTML}</body></html>`);
+      doc.close();
+      await new Promise(r=>setTimeout(r,600));
+      const canvas=await html2canvas(iframe.contentDocument.body,{scale:2,useCORS:true,backgroundColor:'#f5f4f0',logging:false,width:794,windowWidth:794});
+      document.body.removeChild(iframe);
       const pxToMm=cw/canvas.width,pageHeightPx=pageContentH/pxToMm;
       let srcY=0,first=true;
       while(srcY<canvas.height){
@@ -672,49 +890,32 @@ async function downloadPDF(){
       }
     };
 
-    const headerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #2563eb"><div style="width:30px;height:30px;background:#2563eb;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">S</div><div><div style="font-size:15px;font-weight:700;color:#1a1917">물리1 풀이 분석기 — 분석 결과</div><div style="font-size:10px;color:#a8a49e">${today} 생성</div></div></div>`;
+    const headerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #2563eb"><div style="width:24px;height:24px;background:#2563eb;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:12px">S</div><div><div style="font-size:13px;font-weight:700;color:#1a1917">물리1 풀이 분석기 — 분석 결과</div><div style="font-size:9px;color:#a8a49e">${today} 생성</div></div></div>`;
+    const miniHeader=(n,t)=>`<div style="font-size:9px;color:#a8a49e;margin-bottom:10px;text-align:right">물리1 풀이 분석기 — ${n}/${t} 페이지</div>`;
 
     const allCards=Array.from(content.children);
-    const probCards=allCards.filter(el=>el.classList.contains('prob-card')||(el.style&&el.style.marginBottom==='14px'&&!el.classList.contains('summary-card')&&!el.classList.contains('total-card')));
-    const summaryCards=allCards.filter(el=>el.classList.contains('summary-card')||el.classList.contains('total-card')||(el.querySelector&&(el.querySelector('.summary-card-header')||el.querySelector('.total-card-header'))));
+    const probCards=allCards.filter(el=>el.classList.contains('prob-card'));
+    const summaryCards=allCards.filter(el=>el.classList.contains('summary-card')||el.classList.contains('total-card'));
 
     if(probCards.length===0){
-      const w=document.createElement('div');
-      w.style.cssText='position:fixed;top:-99999px;left:0;width:750px;padding:32px;background:#f5f4f0;box-sizing:border-box;';
-      w.innerHTML=headerHTML+content.innerHTML;
-      document.body.appendChild(w);
-      await new Promise(r=>setTimeout(r,300));
-      await renderSection(w,true);
-      document.body.removeChild(w);
+      await renderPage(`<div style="padding:24px">${headerHTML}${content.innerHTML}</div>`,true);
       pdf.save(fname);return;
     }
 
-    const PER_PAGE=4;
-    let isFirstPage=true;
-    for(let i=0;i<probCards.length;i+=PER_PAGE){
-      const group=probCards.slice(i,i+PER_PAGE);
-      const w=document.createElement('div');
-      w.style.cssText='position:fixed;top:-99999px;left:0;width:750px;padding:32px;background:#f5f4f0;box-sizing:border-box;';
-      const pageNum=Math.floor(i/PER_PAGE)+1,totalPages=Math.ceil(probCards.length/PER_PAGE);
-      const ph2=i===0?headerHTML:`<div style="font-size:11px;color:#a8a49e;margin-bottom:16px;text-align:right">물리1 풀이 분석기 — ${pageNum}/${totalPages} 페이지</div>`;
-      w.innerHTML=ph2;
-      group.forEach(card=>{const cl=card.cloneNode(true);cl.style.marginBottom='12px';w.appendChild(cl);});
-      document.body.appendChild(w);
-      await new Promise(r=>setTimeout(r,300));
-      await renderSection(w,isFirstPage);
-      document.body.removeChild(w);
-      isFirstPage=false;
+    const PER=4,totalPages=Math.ceil(probCards.length/PER);
+    let isFirst=true;
+    for(let i=0;i<probCards.length;i+=PER){
+      const group=probCards.slice(i,i+PER);
+      const pNum=Math.floor(i/PER)+1;
+      const hdr=i===0?headerHTML:miniHeader(pNum,totalPages);
+      const cardsHTML=group.map(c=>cardToCompact(c)).join('');
+      await renderPage(`<div style="padding:20px 24px">${hdr}${cardsHTML}</div>`,isFirst);
+      isFirst=false;
     }
 
     if(summaryCards.length>0){
-      const w=document.createElement('div');
-      w.style.cssText='position:fixed;top:-99999px;left:0;width:750px;padding:32px;background:#f5f4f0;box-sizing:border-box;';
-      w.innerHTML=`<div style="font-size:11px;color:#a8a49e;margin-bottom:16px;text-align:right">물리1 풀이 분석기 — 종합 평가</div>`;
-      summaryCards.forEach(card=>{const cl=card.cloneNode(true);cl.style.marginBottom='14px';w.appendChild(cl);});
-      document.body.appendChild(w);
-      await new Promise(r=>setTimeout(r,300));
-      await renderSection(w,false);
-      document.body.removeChild(w);
+      const cardsHTML=summaryCards.map(c=>cardToCompact(c)).join('');
+      await renderPage(`<div style="padding:20px 24px"><div style="font-size:9px;color:#a8a49e;margin-bottom:10px;text-align:right">물리1 풀이 분석기 — 종합 평가</div>${cardsHTML}</div>`,false);
     }
     pdf.save(fname);
   }catch(e){
