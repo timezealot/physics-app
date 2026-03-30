@@ -807,7 +807,6 @@ async function downloadPDF(){
       </div>
       ${content.innerHTML}`;
     document.body.appendChild(wrapper);
-
     await new Promise(r => setTimeout(r, 400));
 
     const canvas = await html2canvas(wrapper, {
@@ -816,19 +815,38 @@ async function downloadPDF(){
     document.body.removeChild(wrapper);
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pw = pdf.internal.pageSize.getWidth();
-    const ph = pdf.internal.pageSize.getHeight();
-    const mg = 8;
-    const cw = pw - mg * 2;
-    const scaledH = (canvas.height * cw) / canvas.width;
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    const pageH = ph - mg * 2;
-    let y = 0;
+    const pw = pdf.internal.pageSize.getWidth();   // 210mm
+    const ph = pdf.internal.pageSize.getHeight();  // 297mm
+    const mg = 10; // 여백 mm
+    const cw = pw - mg * 2; // 콘텐츠 너비 mm
 
-    while(y < scaledH) {
-      if(y > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', mg, mg - y, cw, scaledH);
-      y += pageH;
+    // 캔버스 px → mm 변환 비율
+    const pxToMm = cw / canvas.width;
+    const pageHeightPx = (ph - mg * 2) / pxToMm; // 한 페이지에 들어갈 px 높이
+
+    let srcY = 0; // 현재 캔버스에서 읽을 y 위치 (px)
+    let pageNum = 0;
+
+    while(srcY < canvas.height) {
+      if(pageNum > 0) pdf.addPage();
+
+      // 이번 페이지에 그릴 높이 (px) — 마지막 페이지는 남은 만큼만
+      const sliceH = Math.min(pageHeightPx, canvas.height - srcY);
+
+      // 해당 부분만 잘라낸 캔버스 생성
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = Math.ceil(sliceH);
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+      const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.93);
+      const sliceHmm = sliceH * pxToMm; // 이 슬라이스의 mm 높이
+
+      pdf.addImage(sliceData, 'JPEG', mg, mg, cw, sliceHmm);
+
+      srcY += sliceH;
+      pageNum++;
     }
 
     const d = new Date();
