@@ -607,130 +607,114 @@ SCORE_TABLE_END
   }
 }
 
-function extractNum(text,label){
-  // 다양한 형식 대응: "X점 / 10점", "X점/10점", "X / 10점"
-  const patterns=[
-    new RegExp(label+'[^\\n]*\\n[^\\n]*?([0-9]+)점\\s*/\\s*10점','i'),
-    new RegExp(label+'[\\s\\S]*?:\\s*([0-9]+)점\\s*/\\s*10점','i'),
-    new RegExp(label+'[\\s\\S]*?([0-9]+)\\s*/\\s*10점','i'),
-  ];
-  for(const p of patterns){const m=text.match(p);if(m)return parseInt(m[1]);}
-  return null;
-}
-
-function renderResult(text,container){
+function renderResult(text, container){
   container.innerHTML='';
 
-  // ── 블록 분리: ===== 기준 ──
-  const blocks=text.split(/={4,}/g).filter(b=>b.trim());
-  let pbs=[],totalBlock=null;
-  for(const block of blocks){
-    const m=block.match(/문제\s*(\d+)\s*피드백/);
-    if(m) pbs.push({num:parseInt(m[1]),text:block});
-    else if(block.includes('총평')) totalBlock=block;
-  }
+  // ── 텍스트를 줄 단위로 읽어서 HTML로 변환 ──
+  // 파싱 실패 없이 항상 내용이 보이는 구조
+  const lines = text.split('\n');
+  let html = '';
+  let inCard = false;
 
-  // 파싱 실패 시 raw 텍스트 그대로 표시
-  if(!pbs.length){
-    const raw=document.createElement('div');raw.className='prob-card';
-    raw.innerHTML=`<div class="prob-card-body"><div class="stream-text">${text.replace(/</g,'&lt;')}</div></div>`;
-    container.appendChild(raw);return;
-  }
+  const flush = () => {
+    if(inCard){ html += `</div></div>`; inCard=false; }
+  };
 
-  const scoreRows=[];
-  for(const pb of pbs){
-    const t=pb.text;
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    // 정답 파싱 — ▶ 1. 정답 다음 줄
-    const ansM=t.match(/▶\s*1[.)]\s*정답\s*\n\s*([^\n▶]+)/);
-    // 정오답 파싱 — ▶ 2. 정오답 다음 줄
-    const oxM=t.match(/▶\s*2[.)]\s*정오답[^\n]*\n\s*([^\n▶]+)/);
-    // 풀이법 파싱
-    const flowM=t.match(/▶\s*3[.)]\s*문제 풀이법([\s\S]*?)(?=▶\s*[45]|$)/);
-    // 피드백 파싱
-    const fbM=t.match(/▶\s*4[.)]\s*풀이 피드백([\s\S]*?)(?=▶\s*5|$)/);
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i];
+    const trimmed = line.trim();
 
-    const ans=ansM?ansM[1].trim():'?';
-    const ox=(oxM?oxM[1].trim():'?').replace(/[^OXox]/g,'').toUpperCase()||'?';
-    const isO=ox==='O';
-    const c1=extractNum(t,'개념 이해도');
-    const c2=extractNum(t,'풀이 전개력');
-    const c3=extractNum(t,'문제 해석력');
-    const total=(c1||0)+(c2||0)+(c3||0);
-    scoreRows.push({num:pb.num,ox,c1,c2,c3,total});
-
-    const card=document.createElement('div');card.className='prob-card';
-
-    // 헤더
-    const hd=document.createElement('div');hd.className='prob-card-header';
-    hd.innerHTML=`
-      <div class="prob-card-left">
-        <span class="prob-card-num">문제 ${pb.num}</span>
-        <span class="prob-card-title">정답 ${ans}</span>
-      </div>
-      <span class="ox-badge ${isO?'ox-o':'ox-x'}">${ox}</span>`;
-    card.appendChild(hd);
-
-    // 바디
-    const body=document.createElement('div');body.className='prob-card-body';
-    body.innerHTML=`<div class="answer-chip">📌 정답: ${ans}</div>`;
-
-    // 풀이 흐름
-    if(flowM){
-      const flowText=flowM[1].trim();
-      const stepLines=flowText.split('\n').filter(l=>/^\d단계/.test(l.trim()));
-      let fh=`<div class="sec-block"><div class="sec-title">풀이 흐름</div><div class="flow-steps">`;
-      if(stepLines.length){
-        stepLines.forEach(l=>{
-          const nm=l.trim().match(/^(\d)단계[:\s]+(.*)/);
-          if(nm) fh+=`<div class="flow-step"><span class="flow-step-num">${nm[1]}</span><span class="flow-step-text">${nm[2]}</span></div>`;
-        });
-      } else {
-        fh+=`<div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${flowText.replace(/</g,'&lt;')}</div>`;
+    // ===== 구분선 → 새 카드 시작
+    if(/^={4,}/.test(trimmed)){
+      flush();
+      // 다음 줄이 제목인지 확인
+      const nextLine = (lines[i+1]||'').trim();
+      if(nextLine){
+        i++; // 제목 줄 소비
+        const isSummary = nextLine.includes('총평');
+        const cardClass = isSummary ? 'total-card' : 'prob-card';
+        const headerClass = isSummary ? 'total-card-header' : 'prob-card-header';
+        html += `<div class="${cardClass}" style="margin-bottom:14px">`;
+        html += `<div class="${headerClass}" style="padding:14px 18px;font-size:13px;font-weight:700">${esc(nextLine)}</div>`;
+        html += `<div style="padding:16px 18px">`;
+        inCard = true;
+        // 닫는 ===== 줄 건너뛰기
+        if((lines[i+1]||'').trim().startsWith('=')) i++;
       }
-      fh+=`</div></div>`;
-      body.innerHTML+=fh;
+      continue;
     }
 
-    // 피드백
-    if(fbM){
-      const fbText=fbM[1].trim();
-      if(fbText){
-        const cls=isO?'fb-improve':'fb-block';
-        const title=isO?'풀이 방식 개선점':'틀린 부분 피드백';
-        body.innerHTML+=`<div class="sec-block"><div class="sec-title">${title}</div><div class="${cls}">${fbText.replace(/</g,'&lt;')}</div></div>`;
+    // 카드 안에 없으면 카드 생성
+    if(!inCard){
+      html += `<div class="prob-card" style="margin-bottom:14px"><div style="padding:16px 18px">`;
+      inCard = true;
+    }
+
+    // ▶ 항목 제목
+    if(/^▶/.test(trimmed)){
+      html += `<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;display:flex;align-items:center;gap:6px">`;
+      html += `<span style="width:3px;height:12px;background:var(--accent);border-radius:2px;display:inline-block;flex-shrink:0"></span>`;
+      html += `${esc(trimmed.replace(/^▶\s*/,''))}</div>`;
+      continue;
+    }
+
+    // 단계 (1단계: ...)
+    if(/^\d단계[:\s]/.test(trimmed)){
+      const nm = trimmed.match(/^(\d)단계[:\s]+(.*)/);
+      if(nm){
+        html += `<div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:7px;padding:8px 12px;margin-bottom:6px">`;
+        html += `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${nm[1]}</span>`;
+        html += `<span style="font-size:13px;color:var(--text);line-height:1.6">${esc(nm[2])}</span></div>`;
+        continue;
       }
     }
 
-    // 점수
-    body.innerHTML+=`
-      <div class="score-summary">
-        <div class="score-pill"><span class="score-pill-label">개념 이해도</span><span class="score-pill-val">${c1??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
-        <div class="score-pill"><span class="score-pill-label">풀이 전개력</span><span class="score-pill-val">${c2??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
-        <div class="score-pill"><span class="score-pill-label">문제 해석력</span><span class="score-pill-val">${c3??'?'}</span><span class="score-pill-sub">/ 10점</span></div>
-        <div class="score-pill total"><span class="score-pill-label">합계</span><span class="score-pill-val">${total}</span><span class="score-pill-sub">/ 30점</span></div>
-      </div>`;
+    // - 항목 (피드백 세부)
+    if(/^-\s+/.test(trimmed)){
+      html += `<div style="font-size:13px;color:var(--text);line-height:1.8;padding:3px 0 3px 12px;border-left:2px solid var(--border)">${esc(trimmed)}</div>`;
+      continue;
+    }
 
-    card.appendChild(body);
-    container.appendChild(card);
+    // 점수 줄 (개념 이해도: X점 / 10점)
+    if(/(개념 이해도|풀이 전개력|문제 해석력|합계)/.test(trimmed) && /\d+점/.test(trimmed)){
+      // 점수 행들을 모아서 한 번에 렌더링
+      const scoreLines = [trimmed];
+      while(i+1 < lines.length && /(개념 이해도|풀이 전개력|문제 해석력|합계)/.test(lines[i+1].trim()) && /\d+점/.test(lines[i+1])){
+        i++; scoreLines.push(lines[i].trim());
+      }
+      html += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:14px;display:flex;flex-wrap:wrap;gap:8px">`;
+      scoreLines.forEach(sl=>{
+        const sm = sl.match(/(.*?):\s*(\d+)점\s*\/\s*10점/);
+        const tm = sl.match(/(합계):\s*(\d+)점\s*\/\s*30점/);
+        if(tm){
+          html += `<div style="display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 12px;min-width:76px">`;
+          html += `<span style="font-size:10px;color:var(--text2);margin-bottom:2px">합계</span>`;
+          html += `<span style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:var(--green)">${tm[2]}</span>`;
+          html += `<span style="font-size:9px;color:var(--text3)">/ 30점</span></div>`;
+        } else if(sm){
+          html += `<div style="display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 12px;min-width:76px">`;
+          html += `<span style="font-size:10px;color:var(--text2);margin-bottom:2px">${esc(sm[1].trim())}</span>`;
+          html += `<span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)">${sm[2]}</span>`;
+          html += `<span style="font-size:9px;color:var(--text3)">/ 10점</span></div>`;
+        } else {
+          html += `<div style="font-size:13px;color:var(--text)">${esc(sl)}</div>`;
+        }
+      });
+      html += `</div>`;
+      continue;
+    }
+
+    // 빈 줄
+    if(!trimmed){ html += `<div style="height:6px"></div>`; continue; }
+
+    // 일반 텍스트
+    html += `<div style="font-size:13px;color:var(--text);line-height:1.8">${esc(trimmed)}</div>`;
   }
-  if(scoreRows.length){
-    const a1=(scoreRows.reduce((s,r)=>s+(r.c1||0),0)/scoreRows.length).toFixed(1);
-    const a2=(scoreRows.reduce((s,r)=>s+(r.c2||0),0)/scoreRows.length).toFixed(1);
-    const a3=(scoreRows.reduce((s,r)=>s+(r.c3||0),0)/scoreRows.length).toFixed(1);
-    const aT=(scoreRows.reduce((s,r)=>s+r.total,0)/scoreRows.length).toFixed(1);
-    const sc=document.createElement('div');sc.className='summary-card';
-    sc.innerHTML=`<div class="summary-card-header">📊 전체 점수표</div><table class="summary-table"><tr><th>문제</th><th>정오답</th><th>개념 이해도</th><th>풀이 전개력</th><th>문제 해석력</th><th>합계</th></tr>${scoreRows.map(r=>`<tr><td>${r.num}번</td><td><span style="font-weight:700;color:${r.ox==='O'?'var(--green)':'var(--red)'}">${r.ox}</span></td><td><span class="mono">${r.c1??'?'}/10</span></td><td><span class="mono">${r.c2??'?'}/10</span></td><td><span class="mono">${r.c3??'?'}/10</span></td><td><span class="mono">${r.total}/30</span></td></tr>`).join('')}<tr><td>평균</td><td>-</td><td><span class="mono">${a1}</span></td><td><span class="mono">${a2}</span></td><td><span class="mono">${a3}</span></td><td><span class="mono">${aT}</span></td></tr></table>`;
-    container.appendChild(sc);
-  }
-  if(totalBlock){
-    const sM=totalBlock.match(/▶\s*강점([\s\S]*?)(?=▶|$)/);
-    const wM=totalBlock.match(/▶\s*보완할 점([\s\S]*?)(?=▶|$)/);
-    const dM=totalBlock.match(/▶\s*학습 방향([\s\S]*?)(?=▶|={3,}|$)/);
-    const tc=document.createElement('div');tc.className='total-card';
-    tc.innerHTML=`<div class="total-card-header">💬 총평</div><div class="total-card-body">${sM?`<div class="total-section"><div class="total-section-title">💪 강점</div><div class="total-section-content">${sM[1].trim()}</div></div>`:''} ${wM?`<div class="total-section"><div class="total-section-title">📌 보완할 점</div><div class="total-section-content">${wM[1].trim()}</div></div>`:''} ${dM?`<div class="total-section"><div class="total-section-title">📚 학습 방향</div><div class="total-section-content">${dM[1].trim()}</div></div>`:''}</div>`;
-    container.appendChild(tc);
-  }
+
+  flush();
+  container.innerHTML = html || `<div class="prob-card"><div style="padding:16px 18px;font-size:13px;color:var(--text2)">결과가 없습니다.</div></div>`;
 }
 
 initCountBtns();
