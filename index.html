@@ -232,7 +232,19 @@ textarea::placeholder{color:var(--text3);}
 let currentMode='A', problemCount=3, isMock=false;
 const imageStore={questions:{},answers:{},solutions:{}};
 const bulkStore={q:[],a:[],s:[]};
-const studentAnswers={}; // 문제번호 → 학생이 선택한 정답
+const studentAnswers={};
+const correctAnswers={}; // 문제번호 → 선생님이 입력한 정답 번호
+
+function setCorrectAnswer(num, val, btn){
+  correctAnswers[num]=val;
+  ['①','②','③','④','⑤'].forEach(v=>{
+    const b=document.getElementById(`corr_btn_${num}_${v}`);
+    if(b){b.style.background='#fff';b.style.color='#1d4ed8';b.style.borderColor='#bfdbfe';}
+  });
+  btn.style.background='#1d4ed8';btn.style.color='#fff';btn.style.borderColor='#1d4ed8';
+  const d=document.getElementById(`corr_display_${num}`);
+  if(d)d.textContent=`정답: ${val}`;
+} // 문제번호 → 학생이 선택한 정답
 
 let bulkProblemCount=0;
 const bulkStudentAnswers={}; // 번호 → 정답
@@ -253,7 +265,7 @@ function setBulkCount(n, btn){
     row.innerHTML=`
       <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px;min-width:40px;text-align:center">${i}번</span>
       <div style="display:flex;gap:5px;">
-        ${['①','②','③','④','⑤','O','X'].map(v=>`<button onclick="setBulkAnswer(${i},'${v}',this)" style="width:28px;height:28px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;transition:all .1s;" id="bulk_ans_${i}_${v}">${v}</button>`).join('')}
+        ${['①','②','③','④','⑤'].map(v=>`<button onclick="setBulkAnswer(${i},'${v}',this)" style="width:28px;height:28px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;transition:all .1s;" id="bulk_ans_${i}_${v}">${v}</button>`).join('')}
       </div>
       <span style="font-size:11px;color:var(--text3);margin-left:4px;" id="bulk_ans_display_${i}">미선택</span>`;
     grid.appendChild(row);
@@ -262,7 +274,7 @@ function setBulkCount(n, btn){
 
 function setBulkAnswer(num, val, btn){
   bulkStudentAnswers[num]=val;
-  ['①','②','③','④','⑤','O','X'].forEach(v=>{
+  ['①','②','③','④','⑤'].forEach(v=>{
     const b=document.getElementById(`bulk_ans_${num}_${v}`);
     if(b){b.style.background='var(--surface)';b.style.color='var(--text2)';b.style.borderColor='var(--border)';}
   });
@@ -274,7 +286,7 @@ function setBulkAnswer(num, val, btn){
 function setStudentAnswer(num, val, btn){
   studentAnswers[num]=val;
   // 같은 문제의 모든 버튼 초기화
-  ['①','②','③','④','⑤','O','X'].forEach(v=>{
+  ['①','②','③','④','⑤'].forEach(v=>{
     const b=document.getElementById(`ans_btn_${num}_${v}`);
     if(b){b.style.background='var(--surface)';b.style.color='var(--text2)';b.style.borderColor='var(--border)';}
   });
@@ -410,17 +422,27 @@ function renderInputs(){
       if(!imageStore[type][i])imageStore[type][i]=[];
       const b=document.createElement('div');b.className='problem-block';
 
-      // 학생 풀이 탭에만 정답 입력칸 추가
-      const answerInput = type==='solutions' ? `
+      // 정답·해설 탭: 정답 번호 입력칸
+      const correctAnswerInput = type==='answers' ? `
+        <div style="padding:8px 14px;background:#eff6ff;border-bottom:1px solid #bfdbfe;display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;font-weight:700;color:#1d4ed8;white-space:nowrap">✅ 정답 번호</span>
+          <div style="display:flex;gap:6px">
+            ${['①','②','③','④','⑤'].map(v=>`<button onclick="setCorrectAnswer(${i},'${v}',this)" style="width:30px;height:30px;border-radius:6px;border:1.5px solid #bfdbfe;background:#fff;color:#1d4ed8;font-size:13px;cursor:pointer;transition:all .1s;font-weight:600;" id="corr_btn_${i}_${v}">${v}</button>`).join('')}
+          </div>
+          <span style="font-size:11px;color:#6b6860" id="corr_display_${i}">⚠️ 미입력 (AI가 이미지에서 읽습니다)</span>
+        </div>` : '';
+
+      // 학생 풀이 탭: 학생 선택 정답 입력칸
+      const studentAnswerInput = type==='solutions' ? `
         <div style="padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
           <span style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">학생 선택 정답</span>
           <div style="display:flex;gap:6px">
-            ${['①','②','③','④','⑤','O','X'].map(v=>`<button onclick="setStudentAnswer(${i},'${v}',this)" style="width:30px;height:30px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all .1s;" id="ans_btn_${i}_${v}">${v}</button>`).join('')}
+            ${['①','②','③','④','⑤'].map(v=>`<button onclick="setStudentAnswer(${i},'${v}',this)" style="width:30px;height:30px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all .1s;" id="ans_btn_${i}_${v}">${v}</button>`).join('')}
           </div>
           <span style="font-size:11px;color:var(--text3)" id="ans_display_${i}">미선택</span>
         </div>` : '';
 
-      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><div style="display:flex;gap:6px;align-items:center"><button onclick="convertImgToText('${type}',${i})" id="ocr_btn_${type}_${i}" style="display:none;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;" title="이미지 내용을 텍스트로 변환">✍️ 텍스트 변환</button><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImgUpload('${type}',${i},this)"/></div></div>${answerInput}<div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${ph[ti]}" rows="4"></textarea>`;
+      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><div style="display:flex;gap:6px;align-items:center"><button onclick="convertImgToText('${type}',${i})" id="ocr_btn_${type}_${i}" style="display:none;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;" title="이미지 내용을 텍스트로 변환">✍️ 텍스트 변환</button><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImgUpload('${type}',${i},this)"/></div></div>${correctAnswerInput}${studentAnswerInput}<div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${ph[ti]}" rows="4"></textarea>`;
       c.appendChild(b);
       renderPreviews(type,i);
     }
@@ -709,12 +731,16 @@ async function analyze(){
 
     problems.forEach(p=>{
       const studentAns = studentAnswers[p.num] || '(입력 없음)';
-      const fmt = FMT_PROBLEM.replace(/문제 N/g, `문제 ${p.num}`);
+      const correctAns = correctAnswers[p.num] || null;
+      const fmt = FMT_PROBLEM.replace(/문제 N/g, `문제 ${p.num}`)
+        .replace('(해설에서 확인한 정답 원문자)', correctAns ? correctAns : '(해설에서 확인)');
 
-      parts.push({type:'text',text:`${'='.repeat(60)}\n【문제 ${p.num} 분석】\n${'='.repeat(60)}`});
+      parts.push({type:'text',text:`${'='.repeat(60)}\n【문제 ${p.num} 분석】${correctAns?` — 정답: ${correctAns} (선생님 입력값, 이것이 정답입니다)`:''}
+${'='.repeat(60)}`});
 
       // 해설 먼저 + 강한 마커
-      parts.push({type:'text',text:`▼▼▼ 해설 시작 (문제 ${p.num}) ▼▼▼\n이 섹션의 내용을 풀이법(▶ 3.)에 그대로 옮겨 적으세요.\n${p.a||'(아래 이미지 참고)'}`});
+      const ansNote = correctAns ? `\n⚠️ 이 문제의 정답은 ${correctAns}입니다. 이것은 선생님이 직접 입력한 값이므로 절대적으로 신뢰하세요.` : '';
+      parts.push({type:'text',text:`▼▼▼ 해설 시작 (문제 ${p.num}) ▼▼▼${ansNote}\n이 섹션의 내용을 풀이법(▶ 3.)에 그대로 옮겨 적으세요.\n${p.a||'(아래 이미지 참고)'}`});
       p.aI.forEach((img,ii)=>{
         parts.push({type:'text',text:`[해설 이미지 ${ii+1}/${p.aI.length} — 문제 ${p.num}]`});
         parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
