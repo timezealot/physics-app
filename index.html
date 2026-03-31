@@ -420,11 +420,56 @@ function renderInputs(){
           <span style="font-size:11px;color:var(--text3)" id="ans_display_${i}">미선택</span>
         </div>` : '';
 
-      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImgUpload('${type}',${i},this)"/></div>${answerInput}<div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${ph[ti]}" rows="4"></textarea>`;
+      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><div style="display:flex;gap:6px;align-items:center"><button onclick="convertImgToText('${type}',${i})" id="ocr_btn_${type}_${i}" style="display:none;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;" title="이미지 내용을 텍스트로 변환">✍️ 텍스트 변환</button><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImgUpload('${type}',${i},this)"/></div></div>${answerInput}<div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${ph[ti]}" rows="4"></textarea>`;
       c.appendChild(b);
       renderPreviews(type,i);
     }
   });
+}
+
+// 이미지 → 텍스트 변환 (Claude API 활용)
+async function convertImgToText(type, idx){
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(!apiKey){alert('API Key를 먼저 입력해주세요.');return;}
+  const imgs=imageStore[type][idx]||[];
+  if(!imgs.length){alert('변환할 이미지가 없습니다.');return;}
+
+  const btn=document.getElementById(`ocr_btn_${type}_${idx}`);
+  const textarea=document.getElementById(`${type}_${idx}`);
+  const orig=btn.innerHTML;
+  btn.innerHTML='⏳ 변환 중...';
+  btn.disabled=true;
+  btn.style.color='var(--accent)';
+
+  try{
+    const typeLabel = type==='answers'?'정답 및 해설':type==='questions'?'문제 내용':'학생 풀이';
+    const content=[
+      {type:'text',text:`아래 이미지는 고등학교 물리1 ${typeLabel} 이미지입니다. 이미지에 있는 모든 텍스트, 수식, 기호, 숫자를 빠짐없이 읽어서 텍스트로 정리해주세요.\n\n규칙:\n- 수식은 일반 텍스트로 표현 (예: F×d = 30N×4m)\n- 표나 그림에 있는 값도 포함\n- 손글씨도 최대한 읽어서 포함\n- 원문자(①②③④⑤)는 그대로 사용\n- 정리된 텍스트만 출력, 설명 추가 금지`}
+    ];
+    imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+
+    const res=await fetch('/api/proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:2000,stream:false,
+        messages:[{role:'user',content}]})
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
+    const data=await res.json();
+    const text=data.content?.map(c=>c.text||'').join('').trim();
+    if(text){
+      const prev=textarea.value.trim();
+      textarea.value=prev?prev+'\n\n[이미지 변환 내용]\n'+text:'[이미지 변환 내용]\n'+text;
+      textarea.style.borderColor='var(--green)';
+      setTimeout(()=>textarea.style.borderColor='',2000);
+    }
+  }catch(e){
+    alert('변환 오류: '+e.message);
+  }finally{
+    btn.innerHTML=orig;
+    btn.disabled=false;
+    btn.style.color='var(--text2)';
+  }
 }
 
 function handleImgUpload(type,idx,input){
@@ -442,12 +487,19 @@ function renderPreviews(type,idx){
   const area=document.getElementById(`preview_${type}_${idx}`);
   const divider=document.getElementById(`divider_${type}_${idx}`);
   const badge=document.getElementById(`badge_${type}_${idx}`);
+  const ocrBtn=document.getElementById(`ocr_btn_${type}_${idx}`);
   if(!area)return;
   const imgs=imageStore[type][idx]||[];
   area.innerHTML='';
-  if(!imgs.length){if(divider)divider.style.display='none';if(badge)badge.style.display='none';return;}
+  if(!imgs.length){
+    if(divider)divider.style.display='none';
+    if(badge)badge.style.display='none';
+    if(ocrBtn)ocrBtn.style.display='none';
+    return;
+  }
   if(divider)divider.style.display='block';
   if(badge){badge.style.display='inline';badge.textContent=`📷 ${imgs.length}`;}
+  if(ocrBtn)ocrBtn.style.display='flex';
   imgs.forEach((img,ii)=>{
     const w=document.createElement('div');w.className='img-preview-wrap';
     w.innerHTML=`<img class="img-preview" src="data:${img.mediaType};base64,${img.base64}" onclick="openLightbox(this.src)"/><button class="img-remove-btn" onclick="removeImage('${type}',${idx},${ii})">×</button><div class="img-name">${img.name}</div>`;
@@ -507,70 +559,63 @@ async function analyze(){
 
   if(isMock){setTimeout(()=>renderResult(MOCK_RESPONSE,rc),800);return;}
 
-  const SYSTEM=`당신은 대한민국 고등학교 물리1 전문 교사입니다.
+  const SYSTEM=`당신은 대한민국 고등학교 물리1 전문 교사입니다. 학생 풀이를 분석하고 피드백을 작성합니다.
 
-[최우선 규칙]
-1. 정답은 반드시 "◆ 정답 및 해설 ◆"에서 확인한 값을 그대로 쓰세요. 절대 추측하지 마세요.
-2. 정오답(O/X) 판단은 반드시 "학생이 선택한 정답: XXX" 값과 해설 정답을 비교해서 결정하세요. 풀이 과정을 보고 추측하지 마세요. 학생 정답이 "(입력 없음)"이면 학생 풀이 이미지에서 최종 선택을 찾아보세요.
-3. 풀이법(▶ 3.)은 반드시 "◆ 정답 및 해설 ◆"에 실제로 있는 내용만 사용하세요. 해설에 없는 내용을 추가하거나 창작하지 마세요.
-4. 풀이 피드백(▶ 4.)과 역량 점수(▶ 5.)는 교사로서 자유롭게 전문적으로 판단하세요.
-5. 각 문제 블록([입력 데이터 — 문제 N])은 독립적입니다. 해당 블록 안의 내용만 사용하고 다른 블록은 참조하지 마세요.
+반드시 지켜야 할 규칙:
 
-[분석 순서]
-STEP 1. "◆ 정답 및 해설 ◆" 텍스트·이미지를 읽어 정답과 풀이 과정 파악
-STEP 2. "◆ 문제 내용 ◆" 텍스트·이미지로 문제 상황 파악
-STEP 3. "◆ 학생 풀이 ◆" 텍스트·이미지로 학생 풀이 파악
-STEP 4. 해설(STEP 1) 기준으로 학생 풀이(STEP 3) 비교 분석
-STEP 5. 지정 형식으로 출력
+【풀이법(▶ 3.) 작성 — 가장 중요】
+- [해설] 섹션의 텍스트와 이미지에 나온 풀이 과정을 그대로 옮겨 적으세요.
+- 해설 이미지를 직접 읽고 거기에 쓰인 수식·수치·기호·단위를 그대로 사용하세요.
+- 절대로 자체적으로 풀이를 만들어내거나 추론하지 마세요.
+- 해설에 없는 단계, 수식, 개념을 추가하지 마세요.
+- 당신이 알고 있는 물리1 지식으로 해설을 수정하거나 보완하지 마세요.
+- 해설이 틀려 보여도 해설 내용 그대로 옮기세요. 당신의 판단이 아닌 해설이 기준입니다.
+- 해설의 수식을 일반 텍스트로 표현하세요 (예: F×d = 30×4 + 10×2 = 140).
 
-[풀이법 작성 기준 — ▶ 3. 에만 적용]
-- 해설에 실제로 있는 단계·수치·식만 사용
-- 해설에 없는 개념 설명·공식 추가 금지
+【정답(▶ 1.) 작성】
+- [해설] 섹션에서 정답을 확인하고 원문자(①②③④⑤)로만 표기하세요. 추측 금지.
+- 당신이 직접 계산해서 정답을 구하지 마세요. 해설에 나온 정답을 그대로 쓰세요.
 
-[피드백·역량 점수 작성 기준 — ▶ 4. ▶ 5. 에 적용]
-- 교사의 전문적 판단으로 자유롭게 작성
-- 학생이 어디서 왜 틀렸는지 구체적으로 분석
-- 역량 점수는 해설 기준으로 평가하되 근거를 한 문장으로 작성
+【정오답(▶ 2.) 판단】
+- "학생이 선택한 정답" 값과 해설 정답을 비교해서 O 또는 X만 쓰세요.
 
-[절대 출력 규칙]
-- 형식 기호(▶, =====, 항목명) 절대 변경 금지
-- LaTeX 금지 (수식은 일반텍스트: × ÷ = 사용)
-- 정답: 원문자(①②③④⑤), 해설에서 확인한 값만
-- 정오답: O 또는 X 한 글자만
-- 인사말·칭찬·여담 금지
-- 역량 점수: "X점 / 10점 | 이유: 한 문장"
-- 합계: "XX점 / 30점"
-- 총평은 마지막에 한 번만
+【피드백(▶ 4.)】
+- 학생 풀이와 해설을 비교해서 차이점을 지적하세요.
+- 피드백도 해설을 기준으로 작성하고, 해설에 없는 물리 개념을 피드백에 추가하지 마세요.
 
-[역량 점수 기준]
-10점: 완벽 / 8~9점: 사소한 실수 / 6~7점: 중요 단계 누락 / 4~5점: 부분 이해 / 1~3점: 핵심 놓침`;
+【역량 점수(▶ 5.)】
+- 해설 기준으로 학생 풀이를 평가하세요.
+
+【출력 형식 규칙】
+- 형식 기호(▶ =====)와 항목명을 절대 바꾸지 마세요.
+- LaTeX 금지. 수식은 일반 텍스트(×, ÷, =, →)로만 쓰세요.
+- 인사말·여담 금지.
+- 점수: "X점 / 10점 | 이유: 한 문장"
+- 각 문제 블록은 독립적입니다. 해당 블록 내용만 사용하세요.`;
 
   const FMT_PROBLEM=`
 =============================
 문제 N 피드백
 =============================
 ▶ 1. 정답
-(◆ 정답 및 해설 ◆에서 확인한 정답 원문자만: ①②③④⑤)
+(해설에서 확인한 정답 원문자)
 ▶ 2. 정오답 판단
-(학생 정답 vs 해설 정답 비교 결과: O 또는 X)
+(O 또는 X)
 ▶ 3. 문제 풀이법
-(반드시 ◆ 정답 및 해설 ◆의 내용만 사용. 해설에 없는 내용 추가 금지)
-1단계: (해설에 나온 첫 번째 풀이 단계 — 해설 텍스트/이미지 그대로)
-2단계: (해설에 나온 두 번째 풀이 단계)
-3단계: (해설에 나온 계산 과정 — 실제 수치·식 그대로)
-4단계: (해설에 나온 최종 정답 도출)
+※ 아래 단계는 [해설] 섹션의 내용을 그대로 옮겨 적은 것입니다.
+1단계: (해설에 나온 내용 그대로)
+2단계: (해설에 나온 내용 그대로)
+3단계: (해설에 나온 수식·수치 그대로)
+4단계: (해설의 최종 정답 도출)
 ▶ 4. 풀이 피드백
-(O이고 해설과 경로 완전 동일: 이 항목 전체 생략)
-(O이지만 개선점 있음: 구체적 개선점만)
-(X: 아래 4가지 모두 작성)
-- 틀린 부분: (학생 풀이의 어느 단계가 해설과 다른지 구체적으로)
-- 올바른 내용: (해설에 나온 정확한 식/수치 — 해설 인용)
-- 틀린 이유: (왜 그런 실수가 생겼는지)
-- 개선점: (다음에 이 유형의 문제를 만나면 어떻게 접근할지)
+- 틀린 부분: 
+- 올바른 내용: 
+- 틀린 이유: 
+- 개선점: 
 ▶ 5. 역량 점수
-- 개념 이해도: X점 / 10점 | 이유: 한 문장
-- 풀이 전개력: X점 / 10점 | 이유: 한 문장
-- 문제 해석력: X점 / 10점 | 이유: 한 문장
+- 개념 이해도: X점 / 10점 | 이유: 
+- 풀이 전개력: X점 / 10점 | 이유: 
+- 문제 해석력: X점 / 10점 | 이유: 
 - 합계: XX점 / 30점`;
 
   const FMT_TOTAL=`
@@ -580,14 +625,10 @@ STEP 5. 지정 형식으로 출력
 ▶ 전체 점수표
 | 문제 | 정오답 | 개념 이해도 | 풀이 전개력 | 문제 해석력 | 합계 |
 |------|--------|-----------|-----------|-----------|------|
-(각 문제마다 한 줄 — 예: | 1번 | O | 10/10 | 8/10 | 9/10 | 27/30 |)
-(마지막 줄: | 평균 | - | X.X | X.X | X.X | XX.X/30 |)
+| 평균 | - | X.X | X.X | X.X | XX.X/30 |
 ▶ 강점
-(두 문장 — 잘한 점을 구체적으로)
 ▶ 보완할 점
-(두 문장 — 반복된 실수 패턴 중심으로)
-▶ 학습 방향
-(두 문장 — 지금 당장 실천할 수 있는 구체적인 방법)`;
+▶ 학습 방향`;
 
   let parts=[], feedbackFormat='';
 
@@ -602,29 +643,107 @@ STEP 5. 지정 형식으로 출력
       problems.push({num:i,q,a,s,qI,aI,sI});
     }
     if(!problems.length){alert('문제를 입력해주세요.');goBack();return;}
+
+    const loadingEl=rc.querySelector('.loading-text');
+    const setLoading=(msg,sub='')=>{if(loadingEl)loadingEl.innerHTML=`${msg}${sub?`<br><small>${sub}</small>`:''}`;};
+
+    // ── 공통 API 호출 (스트리밍 없음) ──
+    const callAPI=async(messages,maxTokens=3000,model='claude-opus-4-6')=>{
+      const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({apiKey,model,max_tokens:maxTokens,stream:false,messages})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
+      const data=await res.json();
+      return data.content?.map(c=>c.text||'').join('').trim()||'';
+    };
+
+    // ── 1단계: 이미지 OCR (Opus — 가장 정확한 이미지 읽기) ──
+    const ocrImg=async(imgs,label,problemNum)=>{
+      if(!imgs.length)return'';
+      const content=[{type:'text',text:`이것은 고등학교 물리1 ${label} 이미지입니다.\n이미지에 있는 모든 내용을 빠짐없이 텍스트로 변환하세요.\n\n변환 규칙:\n- 수식: 일반 텍스트로 (예: ΣM = F×3L + mg×L = 0)\n- 기호: ×, ÷, ±, √, →, ∑ 등 그대로 사용\n- 숫자, 단위, 변수명 정확히\n- 손글씨도 최대한 정확히 읽기\n- 원문자 ①②③④⑤ 그대로\n- 그래프/표: 값과 레이블 포함\n- 변환된 텍스트만 출력, 부연설명 금지`}];
+      imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      return await callAPI([{role:'user',content}],3000,'claude-opus-4-6');
+    };
+
+    // ── 2단계: 해설 검증 (정답과 핵심 풀이 단계 추출) ──
+    const verifySolution=async(rawOCR,imgs,problemNum)=>{
+      if(!rawOCR&&!imgs.length)return rawOCR;
+      const content=[
+        {type:'text',text:`아래는 물리1 문제 해설의 OCR 변환 결과입니다.\n\n[OCR 결과]\n${rawOCR||'(이미지만 있음)'}\n\n위 내용과 아래 이미지를 함께 보고 다음을 추출하세요:\n\n1. 최종 정답 (원문자 ①②③④⑤)\n2. 풀이 단계 (해설에 나온 수식·수치 그대로, 자체 추론 금지)\n3. 핵심 물리 개념 (해설에 명시된 것만)\n\n형식:\n[정답] ①\n[풀이]\n1단계: ...\n2단계: ...\n[개념] ...`}
+      ];
+      imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      const verified=await callAPI([{role:'user',content}],2000,'claude-opus-4-6');
+      // OCR + 검증 결과 합치기
+      return `[원본 OCR]\n${rawOCR}\n\n[검증된 핵심 내용]\n${verified}`;
+    };
+
+    // 이미지 있는 섹션 OCR + 검증
+    const ocrCounts={q:0,a:0,s:0};
+    problems.forEach(p=>{if(p.aI.length&&!p.a)ocrCounts.a++;if(p.qI.length&&!p.q)ocrCounts.q++;if(p.sI.length&&!p.s)ocrCounts.s++;});
+    const totalOCR=ocrCounts.a+ocrCounts.q+ocrCounts.s;
+    let doneOCR=0;
+
+    if(totalOCR>0){
+      setLoading('🔍 1단계: 이미지 정밀 분석 중...','Opus 모델로 수식·기호를 정확히 읽습니다');
+      for(const p of problems){
+        if(p.aI.length&&!p.a){
+          setLoading(`🔍 해설 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num} — 수식과 풀이 단계 추출`);
+          const raw=await ocrImg(p.aI,'정답 및 해설',p.num);
+          setLoading(`✅ 해설 검증 중... (${doneOCR}/${totalOCR})`,`문제 ${p.num} — 정답과 풀이 단계 확인`);
+          p.a=await verifySolution(raw,p.aI,p.num);
+        }
+        if(p.qI.length&&!p.q){
+          setLoading(`🔍 문제 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num}`);
+          p.q=await ocrImg(p.qI,'문제 내용',p.num);
+        }
+        if(p.sI.length&&!p.s){
+          setLoading(`🔍 학생 풀이 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num}`);
+          p.s=await ocrImg(p.sI,'학생 풀이',p.num);
+        }
+      }
+      setLoading('✅ 이미지 분석 완료!','3단계: 피드백 생성 시작...');
+      await new Promise(r=>setTimeout(r,400));
+    }
+
+    setLoading('💬 3단계: 피드백 생성 중...','분석한 내용을 바탕으로 피드백을 작성합니다');
+    await new Promise(r=>setTimeout(r,200));
+
     problems.forEach(p=>{
       const studentAns = studentAnswers[p.num] || '(입력 없음)';
-      parts.push({type:'text',text:`\n${'='.repeat(50)}\n[입력 데이터 — 문제 ${p.num}] ← 이 블록은 문제 ${p.num}에만 해당\n${'='.repeat(50)}`});
+      const fmt = FMT_PROBLEM.replace(/문제 N/g, `문제 ${p.num}`);
 
-      // 해설을 가장 먼저 전송 → AI가 정답을 먼저 파악
-      parts.push({type:'text',text:`◆ 문제 ${p.num} 정답 및 해설 ◆\n[이 내용이 문제 ${p.num}의 공식 정답과 풀이입니다. 이것을 기준으로 모든 판단을 하세요]\n${p.a||'(텍스트 없음 — 아래 이미지 참고)'}`});
-      p.aI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      parts.push({type:'text',text:`${'='.repeat(60)}\n【문제 ${p.num} 분석】\n${'='.repeat(60)}`});
 
-      parts.push({type:'text',text:`◆ 문제 ${p.num} 문제 내용 ◆\n${p.q||'(텍스트 없음 — 아래 이미지 참고)'}`});
-      p.qI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      // 해설 먼저 + 강한 마커
+      parts.push({type:'text',text:`▼▼▼ 해설 시작 (문제 ${p.num}) ▼▼▼\n이 섹션의 내용을 풀이법(▶ 3.)에 그대로 옮겨 적으세요.\n${p.a||'(아래 이미지 참고)'}`});
+      p.aI.forEach((img,ii)=>{
+        parts.push({type:'text',text:`[해설 이미지 ${ii+1}/${p.aI.length} — 문제 ${p.num}]`});
+        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
+      });
+      parts.push({type:'text',text:`▲▲▲ 해설 끝 (문제 ${p.num}) ▲▲▲`});
 
-      parts.push({type:'text',text:`◆ 문제 ${p.num} 학생 풀이 ◆\n[학생이 선택한 정답: ${studentAns}] ← 이것이 학생의 최종 선택입니다. 풀이 과정이 아니라 이 값을 기준으로 정오답을 판단하세요.\n${p.s||'(텍스트 없음 — 아래 이미지 참고)'}`});
-      p.sI.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
+      // 문제
+      parts.push({type:'text',text:`▼▼▼ 문제 내용 (문제 ${p.num}) ▼▼▼\n${p.q||'(아래 이미지 참고)'}`});
+      p.qI.forEach((img,ii)=>{
+        parts.push({type:'text',text:`[문제 이미지 ${ii+1}/${p.qI.length} — 문제 ${p.num}]`});
+        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
+      });
+      parts.push({type:'text',text:`▲▲▲ 문제 내용 끝 (문제 ${p.num}) ▲▲▲`});
 
-      parts.push({type:'text',text:`[문제 ${p.num} 입력 끝]`});
+      // 학생 풀이
+      parts.push({type:'text',text:`▼▼▼ 학생 풀이 (문제 ${p.num}) ▼▼▼\n학생이 선택한 정답: ${studentAns}\n${p.s||'(아래 이미지 참고)'}`});
+      p.sI.forEach((img,ii)=>{
+        parts.push({type:'text',text:`[학생 풀이 이미지 ${ii+1}/${p.sI.length} — 문제 ${p.num}]`});
+        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
+      });
+      parts.push({type:'text',text:`▲▲▲ 학생 풀이 끝 (문제 ${p.num}) ▲▲▲`});
+
+      // 출력 지시
+      parts.push({type:'text',text:`위 문제 ${p.num}을 아래 형식으로 출력하세요.
+경고: ▶ 3. 풀이법은 반드시 위 [해설] 섹션에서 읽은 내용만 사용하세요.
+당신의 물리1 지식으로 풀이를 만들거나 수정하지 마세요. 해설이 틀려 보여도 해설 그대로 옮기세요.
+${fmt}`});
     });
-    feedbackFormat=`위 ${problems.length}개 문제를 순서대로 분석하세요.
-각 문제의 정답은 반드시 해당 블록의 "◆ 정답 및 해설 ◆"에서 확인하세요. 절대 추측하지 마세요.
-풀이법은 해설에 실제로 나온 내용만 사용하고 해설에 없는 내용은 추가하지 마세요.
-각 문제마다 아래 형식을 그대로 사용하세요:
-${problems.map(p=>FMT_PROBLEM.replace(/문제 N/g,'문제 '+p.num)).join('\n')}
-
-모든 문제 피드백 완료 후:${FMT_TOTAL}`;
+    feedbackFormat=`모든 문제 피드백 완료 후 아래 총평을 작성하세요:${FMT_TOTAL}`;
   } else {
     const qT=document.getElementById('bulk-text-q').value.trim();
     const aT=document.getElementById('bulk-text-a').value.trim();
@@ -648,12 +767,11 @@ ${problems.map(p=>FMT_PROBLEM.replace(/문제 N/g,'문제 '+p.num)).join('\n')}
     if(sT)parts.push({type:'text',text:sT});
     bulkStore.s.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
     feedbackFormat=`사진과 내용을 분석하세요.
-${range?`분석 대상: ${range}`:'사진에서 모든 문제를 자동으로 찾아 분석하세요.'}
+${range?`분석 대상: ${range}`:'사진에서 모든 문제를 찾아 분석하세요.'}
 ${bulkAnsText}
-정답은 반드시 [정답 및 해설]에서 확인하고, 정오답은 위 [학생 선택 정답 목록]과 비교해서 판단하세요.
-각 문제별로 아래 형식을 반복하세요:
-${FMT_PROBLEM}
-(문제 수만큼 반복)
+정답은 반드시 [정답 및 해설]에서 확인하고, 정오답은 위 학생 선택 정답과 비교하세요.
+각 문제마다 아래 형식을 반복하세요:
+${FMT_PROBLEM.replace(/문제 N/g,'문제 N(번호)')}
 모든 문제 완료 후:${FMT_TOTAL}`;
   }
   parts.push({type:'text',text:feedbackFormat});
@@ -662,7 +780,7 @@ ${FMT_PROBLEM}
     const res=await fetch('/api/proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:8000,stream:true,system:SYSTEM,messages:[{role:'user',content:parts}]})
+      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:16000,stream:true,system:SYSTEM,messages:[{role:'user',content:parts}]})
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
 
