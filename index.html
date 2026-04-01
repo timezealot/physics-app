@@ -488,28 +488,45 @@ async function analyze(){
 
   // ── 공통 API 호출 (스트리밍 없음) ──
   const callAPI=async(messages,maxTokens=3000,model='claude-sonnet-4-20250514')=>{
-    const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey,model,max_tokens:maxTokens,stream:false,messages})});
-    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
-    const data=await res.json();
-    return data.content?.map(c=>c.text||'').join('').trim()||'';
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),120000); // 30초 타임아웃
+    try{
+      const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
+        signal:controller.signal,
+        body:JSON.stringify({apiKey,model,max_tokens:maxTokens,stream:false,messages})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
+      const data=await res.json();
+      return data.content?.map(c=>c.text||'').join('').trim()||'';
+    }finally{
+      clearTimeout(timer);
+    }
   };
 
-  // ── 1단계: 이미지 OCR (Opus) ──
+  // ── 1단계: 이미지 OCR (Sonnet) ──
   const ocrImg=async(imgs,label)=>{
     if(!imgs.length)return'';
     const content=[{type:'text',text:`이것은 고등학교 물리1 ${label} 이미지입니다.\n이미지에 있는 모든 내용을 빠짐없이 텍스트로 변환하세요.\n변환 규칙:\n- 수식: 일반 텍스트로 (예: ΣM = F×3L + mg×L = 0)\n- 기호: ×, ÷, ±, √, →, ∑ 등 그대로\n- 숫자, 단위, 변수명 정확히\n- 손글씨도 최대한 정확히\n- 원문자 ①②③④⑤ 그대로\n- 변환된 텍스트만 출력, 부연설명 금지`}];
     imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-    return await callAPI([{role:'user',content}],3000,'claude-opus-4-6');
+    try{
+      return await callAPI([{role:'user',content}],3000,'claude-opus-4-6');
+    }catch(e){
+      console.warn('OCR 실패, 이미지 직접 전달로 전환:', e.message);
+      return ''; // 실패 시 빈 문자열 → 이미지 직접 전달
+    }
   };
 
-  // ── 2단계: 해설 검증 ──
+  // ── 2단계: 해설 검증 (Sonnet) ──
   const verifySolution=async(rawOCR,imgs)=>{
     if(!rawOCR&&!imgs.length)return rawOCR;
     const content=[{type:'text',text:`아래는 물리1 해설의 OCR 결과입니다.\n\n[OCR 결과]\n${rawOCR||'(이미지만 있음)'}\n\n위 내용과 아래 이미지를 함께 보고 다음을 추출하세요:\n1. 최종 정답 (원문자 ①②③④⑤)\n2. 풀이 단계 (해설에 나온 수식·수치 그대로, 자체 추론 금지)\n3. 핵심 물리 개념 (해설에 명시된 것만)\n\n형식:\n[정답] ①\n[풀이]\n1단계: ...\n2단계: ...\n[개념] ...`}];
     imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-    const verified=await callAPI([{role:'user',content}],2000,'claude-opus-4-6');
-    return `[원본 OCR]\n${rawOCR}\n\n[검증된 핵심 내용]\n${verified}`;
+    try{
+      const verified=await callAPI([{role:'user',content}],2000,'claude-opus-4-6');
+      return `[원본 OCR]\n${rawOCR}\n\n[검증된 핵심 내용]\n${verified}`;
+    }catch(e){
+      console.warn('검증 실패, OCR 결과만 사용:', e.message);
+      return rawOCR;
+    }
   };
 
   // 이미지 OCR 자동 실행
