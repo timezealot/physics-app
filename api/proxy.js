@@ -1,4 +1,4 @@
-export const config = { runtime: 'nodejs', maxDuration: 300 };
+export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
@@ -18,7 +18,7 @@ export default async function handler(req) {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: { message: 'API Key가 없습니다.' } }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
 
@@ -32,9 +32,20 @@ export default async function handler(req) {
       body: JSON.stringify(anthropicBody),
     });
 
-    // Stream 그대로 전달
+    // 에러 응답도 JSON으로 정상 처리
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = 'API 오류';
+      try { errMsg = JSON.parse(errText).error?.message || errMsg; } catch {}
+      return new Response(JSON.stringify({ error: { message: errMsg } }), {
+        status: res.status,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
+    // 스트림 그대로 전달
     return new Response(res.body, {
-      status: res.status,
+      status: 200,
       headers: {
         'Content-Type': 'text/event-stream',
         'Access-Control-Allow-Origin': '*',
@@ -44,7 +55,7 @@ export default async function handler(req) {
   } catch (e) {
     return new Response(JSON.stringify({ error: { message: e.message } }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   }
 }
