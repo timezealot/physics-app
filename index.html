@@ -483,83 +483,13 @@ async function analyze(){
 
   let parts=[], feedbackFormat='';
 
-  const loadingEl=rc.querySelector('.loading-text');
-  const setLoading=(msg,sub='')=>{if(loadingEl)loadingEl.innerHTML=`${msg}${sub?`<br><small>${sub}</small>`:''}`;};
-
-  // ── 공통 API 호출 (스트리밍 없음) ──
-  const callAPI=async(messages,maxTokens=3000,model='claude-sonnet-4-20250514')=>{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),120000); // 30초 타임아웃
-    try{
-      const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-        signal:controller.signal,
-        body:JSON.stringify({apiKey,model,max_tokens:maxTokens,stream:false,messages})});
-      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
-      const data=await res.json();
-      return data.content?.map(c=>c.text||'').join('').trim()||'';
-    }finally{
-      clearTimeout(timer);
-    }
-  };
-
-  // ── 1단계: 이미지 OCR (Sonnet) ──
-  const ocrImg=async(imgs,label)=>{
-    if(!imgs.length)return'';
-    const content=[{type:'text',text:`이것은 고등학교 물리1 ${label} 이미지입니다.\n이미지에 있는 모든 내용을 빠짐없이 텍스트로 변환하세요.\n변환 규칙:\n- 수식: 일반 텍스트로 (예: ΣM = F×3L + mg×L = 0)\n- 기호: ×, ÷, ±, √, →, ∑ 등 그대로\n- 숫자, 단위, 변수명 정확히\n- 손글씨도 최대한 정확히\n- 원문자 ①②③④⑤ 그대로\n- 변환된 텍스트만 출력, 부연설명 금지`}];
-    imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-    try{
-      return await callAPI([{role:'user',content}],3000,'claude-opus-4-6');
-    }catch(e){
-      console.warn('OCR 실패, 이미지 직접 전달로 전환:', e.message);
-      return ''; // 실패 시 빈 문자열 → 이미지 직접 전달
-    }
-  };
-
-  // ── 2단계: 해설 검증 (Sonnet) ──
-  const verifySolution=async(rawOCR,imgs)=>{
-    if(!rawOCR&&!imgs.length)return rawOCR;
-    const content=[{type:'text',text:`아래는 물리1 해설의 OCR 결과입니다.\n\n[OCR 결과]\n${rawOCR||'(이미지만 있음)'}\n\n위 내용과 아래 이미지를 함께 보고 다음을 추출하세요:\n1. 최종 정답 (원문자 ①②③④⑤)\n2. 풀이 단계 (해설에 나온 수식·수치 그대로, 자체 추론 금지)\n3. 핵심 물리 개념 (해설에 명시된 것만)\n\n형식:\n[정답] ①\n[풀이]\n1단계: ...\n2단계: ...\n[개념] ...`}];
-    imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-    try{
-      const verified=await callAPI([{role:'user',content}],2000,'claude-opus-4-6');
-      return `[원본 OCR]\n${rawOCR}\n\n[검증된 핵심 내용]\n${verified}`;
-    }catch(e){
-      console.warn('검증 실패, OCR 결과만 사용:', e.message);
-      return rawOCR;
-    }
-  };
-
-  // 이미지 OCR 자동 실행
-  const stores={q:bulkStore.q, a:bulkStore.a, s:bulkStore.s};
-  const texts={q:document.getElementById('bulk-text-q').value.trim(),
-               a:document.getElementById('bulk-text-a').value.trim(),
-               s:document.getElementById('bulk-text-s').value.trim()};
-  const ocrNeeded=(['a','q','s']).filter(k=>stores[k].length&&!texts[k]);
-  if(ocrNeeded.length>0){
-    setLoading('🔍 1단계: 이미지 분석 중...','수식·기호를 정확히 읽습니다');
-    let done=0;
-    for(const k of ocrNeeded){
-      const label={q:'문제',a:'정답 및 해설',s:'학생 풀이'}[k];
-      setLoading(`🔍 이미지 분석 중... (${++done}/${ocrNeeded.length})`,`${label} 이미지`);
-      if(k==='a'){
-        const raw=await ocrImg(stores.a,'정답 및 해설');
-        setLoading(`✅ 해설 검증 중...`,`정답과 풀이 단계 확인`);
-        texts.a=await verifySolution(raw,stores.a);
-      } else {
-        texts[k]=await ocrImg(stores[k],label);
-      }
-    }
-    setLoading('✅ 이미지 분석 완료!','피드백 생성 시작...');
-    await new Promise(r=>setTimeout(r,300));
-  }
-  setLoading('💬 피드백 생성 중...','분석 내용을 바탕으로 작성합니다');
-  await new Promise(r=>setTimeout(r,200));
-
-  const qT=texts.q;
-  const aT=texts.a;
-  const sT=texts.s;
+  const qT=document.getElementById('bulk-text-q').value.trim();
+  const aT=document.getElementById('bulk-text-a').value.trim();
+  const sT=document.getElementById('bulk-text-s').value.trim();
   const range=document.getElementById('bulk-range').value.trim();
-    if(!qT&&!aT&&!sT&&!bulkStore.q.length&&!bulkStore.a.length&&!bulkStore.s.length){alert('사진 또는 텍스트를 입력해주세요.');goBack();return;}
+  if(!qT&&!aT&&!sT&&!bulkStore.q.length&&!bulkStore.a.length&&!bulkStore.s.length){
+    alert('사진 또는 텍스트를 입력해주세요.');goBack();return;
+  }
 
     // 학생 정답 목록 텍스트 생성
     const bulkAnsEntries=Object.entries(bulkStudentAnswers).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
