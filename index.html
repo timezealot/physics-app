@@ -176,6 +176,72 @@ let currentMode='B', isMock=false;
 const bulkStore={q:[],a:[],s:[]};
 
 
+function setBulkCount(n, btn){
+  bulkProblemCount=n;
+  for(let i=1;i<=10;i++){
+    const b=document.getElementById(`bulk_count_${i}`);
+    if(b){b.style.background=i===n?'var(--accent)':'var(--surface2)';b.style.color=i===n?'#fff':'var(--text2)';b.style.borderColor=i===n?'var(--accent)':'var(--border)';}
+  }
+  const grid=document.getElementById('bulk-answer-grid');
+  grid.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;';
+
+    // 번호 배지
+    const badge=document.createElement('span');
+    badge.style.cssText='font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px;min-width:40px;text-align:center;';
+    badge.textContent=i+'번';
+    row.appendChild(badge);
+
+    // 정답 칸 (파란색)
+    const corrWrap=document.createElement('div');
+    corrWrap.style.cssText='display:flex;align-items:center;gap:5px;';
+    const corrLabel=document.createElement('span');
+    corrLabel.style.cssText='font-size:10px;font-weight:700;color:#1d4ed8;white-space:nowrap;';
+    corrLabel.textContent='정답';
+    corrWrap.appendChild(corrLabel);
+    ['①','②','③','④','⑤'].forEach(v=>{
+      const b=document.createElement('button');
+      b.id=`bulk_corr_${i}_${v}`;
+      b.textContent=v;
+      b.style.cssText='width:27px;height:27px;border-radius:5px;border:1.5px solid #bfdbfe;background:#fff;color:#1d4ed8;font-size:12px;cursor:pointer;font-weight:600;';
+      b.onclick=(function(num,val){return function(){setBulkCorrect(num,val,this);};})(i,v);
+      corrWrap.appendChild(b);
+    });
+    const corrDisplay=document.createElement('span');
+    corrDisplay.id=`bulk_corr_display_${i}`;
+    corrDisplay.style.cssText='font-size:10px;color:#6b6860;margin-left:2px;';
+    corrDisplay.textContent='미입력';
+    corrWrap.appendChild(corrDisplay);
+    row.appendChild(corrWrap);
+
+    // 학생 칸 (회색)
+    const ansWrap=document.createElement('div');
+    ansWrap.style.cssText='display:flex;align-items:center;gap:5px;';
+    const ansLabel=document.createElement('span');
+    ansLabel.style.cssText='font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;';
+    ansLabel.textContent='학생';
+    ansWrap.appendChild(ansLabel);
+    ['①','②','③','④','⑤'].forEach(v=>{
+      const b=document.createElement('button');
+      b.id=`bulk_ans_${i}_${v}`;
+      b.textContent=v;
+      b.style.cssText='width:27px;height:27px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;';
+      b.onclick=(function(num,val){return function(){setBulkAnswer(num,val,this);};})(i,v);
+      ansWrap.appendChild(b);
+    });
+    const ansDisplay=document.createElement('span');
+    ansDisplay.id=`bulk_ans_display_${i}`;
+    ansDisplay.style.cssText='font-size:10px;color:var(--text3);margin-left:2px;';
+    ansDisplay.textContent='미선택';
+    ansWrap.appendChild(ansDisplay);
+    row.appendChild(ansWrap);
+
+    grid.appendChild(row);
+  }
+}
+
 function setBulkCorrect(num, val, btn){
   bulkCorrectAnswers[num]=val;
   ['①','②','③','④','⑤'].forEach(v=>{
