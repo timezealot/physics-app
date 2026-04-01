@@ -206,7 +206,7 @@ function setBulkCount(n, btn){
       b.id=`bulk_corr_${i}_${v}`;
       b.textContent=v;
       b.style.cssText='width:27px;height:27px;border-radius:5px;border:1.5px solid #bfdbfe;background:#fff;color:#1d4ed8;font-size:12px;cursor:pointer;font-weight:600;';
-      b.onclick=(function(num,val){return function(){setBulkCorrect(num,val,this);};})(i,v);
+      b.addEventListener('click',(function(num,val,el){return function(){setBulkCorrect(num,val,el);};})(i,v,b));
       corrWrap.appendChild(b);
     });
     const corrDisplay=document.createElement('span');
@@ -228,7 +228,7 @@ function setBulkCount(n, btn){
       b.id=`bulk_ans_${i}_${v}`;
       b.textContent=v;
       b.style.cssText='width:27px;height:27px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;';
-      b.onclick=(function(num,val){return function(){setBulkAnswer(num,val,this);};})(i,v);
+      b.addEventListener('click',(function(num,val,el){return function(){setBulkAnswer(num,val,el);};})(i,v,b));
       ansWrap.appendChild(b);
     });
     const ansDisplay=document.createElement('span');
