@@ -27,24 +27,6 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 .api-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 10px;outline:none;width:200px;transition:border-color .15s;}
 .api-input:focus{border-color:var(--accent);}
 .container{max-width:900px;margin:0 auto;padding:24px 16px 120px;}
-.mode-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);}
-.mode-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;}
-.mode-btns{display:flex;gap:8px;flex-wrap:wrap;}
-.mode-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;}
-.mode-btn:hover{border-color:var(--accent);color:var(--accent);}
-.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-.mode-desc{font-size:11px;color:var(--text3);margin-top:8px;}
-.control-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.control-label{font-size:12px;color:var(--text2);white-space:nowrap;font-weight:500;}
-.count-btns{display:flex;gap:5px;flex-wrap:wrap;}
-.count-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;}
-.count-btn:hover{border-color:var(--accent);color:var(--accent);}
-.count-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
-.tab-nav{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:14px;gap:2px;}
-.tab-btn{flex:1;padding:9px 6px;border-radius:7px;border:none;background:transparent;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;text-align:center;}
-.tab-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
-.input-section{display:none;}
-.input-section.active{display:block;}
 .bulk-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
 @media(max-width:600px){.bulk-grid{grid-template-columns:1fr;}.api-input{width:130px;}.header-sub{display:none;}}
 .bulk-zone{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
@@ -66,22 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 .bulk-add-btn:hover{border-color:var(--accent);color:var(--accent);}
 .bulk-text-area{width:100%;background:transparent;border:none;border-top:1px solid var(--border);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;line-height:1.7;padding:10px 14px;resize:vertical;min-height:60px;outline:none;}
 .bulk-text-area::placeholder{color:var(--text3);}
-.problem-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
-.problem-block:focus-within{border-color:#93c5fd;}
-.problem-header{padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.problem-header-left{display:flex;align-items:center;gap:8px;}
-.problem-num{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px;}
-.problem-label{font-size:12px;color:var(--text2);}
 .img-badge{background:var(--accent-light);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:10px;font-family:'JetBrains Mono',monospace;}
-.img-upload-btn{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;}
-.img-upload-btn:hover{border-color:var(--accent);color:var(--accent);}
-.img-upload-input{display:none;}
-.img-preview-area{padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;}
-.img-preview-wrap{position:relative;}
-.img-preview{width:72px;height:72px;object-fit:cover;border-radius:7px;border:1px solid var(--border);display:block;cursor:pointer;}
-.img-remove-btn{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.img-name{font-size:9px;color:var(--text3);text-align:center;margin-top:2px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.input-divider{border:none;border-top:1px solid var(--border);}
 textarea{width:100%;background:transparent;border:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;line-height:1.7;padding:12px 14px;resize:vertical;min-height:80px;outline:none;}
 textarea::placeholder{color:var(--text3);}
 .range-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--text);resize:none;outline:none;min-height:48px;}
@@ -142,31 +109,7 @@ textarea::placeholder{color:var(--text3);}
 
 <div class="container">
   <div id="inputView">
-    <div class="mode-bar">
-      <div class="mode-title">입력 방식 선택</div>
-      <div class="mode-btns">
-        <button class="mode-btn active" onclick="setMode('A')">📋 문제별 입력</button>
-        <button class="mode-btn" onclick="setMode('B')">🖼️ 사진 통합 입력</button>
-      </div>
-      <div class="mode-desc" id="modeDesc">문제마다 따로 내용을 입력합니다. 텍스트 + 사진 모두 가능해요.</div>
-    </div>
-
-    <div id="modeA">
-      <div class="control-bar">
-        <span class="control-label">문제 수</span>
-        <div class="count-btns" id="countBtns"></div>
-      </div>
-      <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab(0)">📝 문제</button>
-        <button class="tab-btn" onclick="switchTab(1)">✅ 정답·해설</button>
-        <button class="tab-btn" onclick="switchTab(2)">✏️ 학생 풀이</button>
-      </div>
-      <div class="input-section active" id="tab0"><div id="questions-container"></div></div>
-      <div class="input-section" id="tab1"><div id="answers-container"></div></div>
-      <div class="input-section" id="tab2"><div id="solutions-container"></div></div>
-    </div>
-
-    <div id="modeB" style="display:none">
+    <div id="modeB">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:var(--shadow);">
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500;">분석할 문제 범위 (선택)</div>
         <textarea class="range-input" id="bulk-range" placeholder="예: 5번~9번 문제입니다 / 사진에서 모든 문제를 자동으로 찾아 분석"></textarea>
@@ -229,47 +172,19 @@ textarea::placeholder{color:var(--text3);}
 </div>
 
 <script>
-let currentMode='A', problemCount=3, isMock=false;
-const imageStore={questions:{},answers:{},solutions:{}};
+let currentMode='B', isMock=false;
 const bulkStore={q:[],a:[],s:[]};
-const studentAnswers={};
-const correctAnswers={}; // 문제번호 → 선생님이 입력한 정답 번호
 
-function setCorrectAnswer(num, val, btn){
-  correctAnswers[num]=val;
+
+function setBulkCorrect(num, val, btn){
+  bulkCorrectAnswers[num]=val;
   ['①','②','③','④','⑤'].forEach(v=>{
-    const b=document.getElementById(`corr_btn_${num}_${v}`);
+    const b=document.getElementById(`bulk_corr_${num}_${v}`);
     if(b){b.style.background='#fff';b.style.color='#1d4ed8';b.style.borderColor='#bfdbfe';}
   });
   btn.style.background='#1d4ed8';btn.style.color='#fff';btn.style.borderColor='#1d4ed8';
-  const d=document.getElementById(`corr_display_${num}`);
+  const d=document.getElementById(`bulk_corr_display_${num}`);
   if(d)d.textContent=`정답: ${val}`;
-} // 문제번호 → 학생이 선택한 정답
-
-let bulkProblemCount=0;
-const bulkStudentAnswers={}; // 번호 → 정답
-
-function setBulkCount(n, btn){
-  bulkProblemCount=n;
-  // 카운트 버튼 강조
-  for(let i=1;i<=10;i++){
-    const b=document.getElementById(`bulk_count_${i}`);
-    if(b){b.style.background=i===n?'var(--accent)':'var(--surface2)';b.style.color=i===n?'#fff':'var(--text2)';b.style.borderColor=i===n?'var(--accent)':'var(--border)';}
-  }
-  // 정답 입력 행 렌더링
-  const grid=document.getElementById('bulk-answer-grid');
-  grid.innerHTML='';
-  for(let i=1;i<=n;i++){
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);';
-    row.innerHTML=`
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px;min-width:40px;text-align:center">${i}번</span>
-      <div style="display:flex;gap:5px;">
-        ${['①','②','③','④','⑤'].map(v=>`<button onclick="setBulkAnswer(${i},'${v}',this)" style="width:28px;height:28px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;cursor:pointer;transition:all .1s;" id="bulk_ans_${i}_${v}">${v}</button>`).join('')}
-      </div>
-      <span style="font-size:11px;color:var(--text3);margin-left:4px;" id="bulk_ans_display_${i}">미선택</span>`;
-    grid.appendChild(row);
-  }
 }
 
 function setBulkAnswer(num, val, btn){
@@ -283,18 +198,6 @@ function setBulkAnswer(num, val, btn){
   if(d)d.textContent=`선택: ${val}`;
 }
 
-function setStudentAnswer(num, val, btn){
-  studentAnswers[num]=val;
-  // 같은 문제의 모든 버튼 초기화
-  ['①','②','③','④','⑤'].forEach(v=>{
-    const b=document.getElementById(`ans_btn_${num}_${v}`);
-    if(b){b.style.background='var(--surface)';b.style.color='var(--text2)';b.style.borderColor='var(--border)';}
-  });
-  // 선택된 버튼 강조
-  btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
-  const display=document.getElementById(`ans_display_${num}`);
-  if(display)display.textContent=`선택: ${val}`;
-}
 
 const MOCK_RESPONSE=`=============================
 문제 5 피드백
@@ -391,144 +294,6 @@ function toggleMock(){
   banner.style.display=isMock?'block':'none';
 }
 
-function setMode(m){
-  currentMode=m;
-  document.getElementById('modeA').style.display=m==='A'?'block':'none';
-  document.getElementById('modeB').style.display=m==='B'?'block':'none';
-  document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('active',i===(m==='A'?0:1)));
-  document.getElementById('modeDesc').textContent=m==='A'?'문제마다 따로 내용을 입력합니다. 텍스트 + 사진 모두 가능해요.':'사진 한 장에 여러 문제가 있어도 됩니다. 사진만 올려도 돼요.';
-}
-
-function initCountBtns(){
-  const wrap=document.getElementById('countBtns');
-  wrap.innerHTML='';
-  for(let i=1;i<=10;i++){
-    const btn=document.createElement('button');
-    btn.className='count-btn'+(i===problemCount?' active':'');
-    btn.textContent=i;
-    btn.onclick=()=>{problemCount=i;initCountBtns();renderInputs();};
-    wrap.appendChild(btn);
-  }
-}
-
-function renderInputs(){
-  const types=['questions','answers','solutions'];
-  const labels=['문제 내용','정답 및 해설','학생 풀이'];
-  const ph=['문제 내용을 입력하거나 📷 사진을 추가하세요.','정답과 해설을 입력하거나 📷 사진을 추가하세요.','학생 풀이를 입력하거나 📷 사진을 추가하세요.'];
-  types.forEach((type,ti)=>{
-    const c=document.getElementById(type+'-container');
-    c.innerHTML='';
-    for(let i=1;i<=problemCount;i++){
-      if(!imageStore[type][i])imageStore[type][i]=[];
-      const b=document.createElement('div');b.className='problem-block';
-
-      // 정답·해설 탭: 정답 번호 입력칸
-      const correctAnswerInput = type==='answers' ? `
-        <div style="padding:8px 14px;background:#eff6ff;border-bottom:1px solid #bfdbfe;display:flex;align-items:center;gap:10px">
-          <span style="font-size:12px;font-weight:700;color:#1d4ed8;white-space:nowrap">✅ 정답 번호</span>
-          <div style="display:flex;gap:6px">
-            ${['①','②','③','④','⑤'].map(v=>`<button onclick="setCorrectAnswer(${i},'${v}',this)" style="width:30px;height:30px;border-radius:6px;border:1.5px solid #bfdbfe;background:#fff;color:#1d4ed8;font-size:13px;cursor:pointer;transition:all .1s;font-weight:600;" id="corr_btn_${i}_${v}">${v}</button>`).join('')}
-          </div>
-          <span style="font-size:11px;color:#6b6860" id="corr_display_${i}">⚠️ 미입력 (AI가 이미지에서 읽습니다)</span>
-        </div>` : '';
-
-      // 학생 풀이 탭: 학생 선택 정답 입력칸
-      const studentAnswerInput = type==='solutions' ? `
-        <div style="padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-          <span style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">학생 선택 정답</span>
-          <div style="display:flex;gap:6px">
-            ${['①','②','③','④','⑤'].map(v=>`<button onclick="setStudentAnswer(${i},'${v}',this)" style="width:30px;height:30px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all .1s;" id="ans_btn_${i}_${v}">${v}</button>`).join('')}
-          </div>
-          <span style="font-size:11px;color:var(--text3)" id="ans_display_${i}">미선택</span>
-        </div>` : '';
-
-      b.innerHTML=`<div class="problem-header"><div class="problem-header-left"><span class="problem-num">문제 ${i}</span><span class="problem-label">${labels[ti]}</span><span class="img-badge" id="badge_${type}_${i}" style="display:none"></span></div><div style="display:flex;gap:6px;align-items:center"><button onclick="convertImgToText('${type}',${i})" id="ocr_btn_${type}_${i}" style="display:none;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .12s;" title="이미지 내용을 텍스트로 변환">✍️ 텍스트 변환</button><label class="img-upload-btn" for="file_${type}_${i}">📷 사진 추가</label><input class="img-upload-input" type="file" id="file_${type}_${i}" accept="image/*" multiple onchange="handleImgUpload('${type}',${i},this)"/></div></div>${correctAnswerInput}${studentAnswerInput}<div class="img-preview-area" id="preview_${type}_${i}"></div><hr class="input-divider" id="divider_${type}_${i}" style="display:none"><textarea id="${type}_${i}" placeholder="${ph[ti]}" rows="4"></textarea>`;
-      c.appendChild(b);
-      renderPreviews(type,i);
-    }
-  });
-}
-
-// 이미지 → 텍스트 변환 (Claude API 활용)
-async function convertImgToText(type, idx){
-  const apiKey=document.getElementById('apiKey').value.trim();
-  if(!apiKey){alert('API Key를 먼저 입력해주세요.');return;}
-  const imgs=imageStore[type][idx]||[];
-  if(!imgs.length){alert('변환할 이미지가 없습니다.');return;}
-
-  const btn=document.getElementById(`ocr_btn_${type}_${idx}`);
-  const textarea=document.getElementById(`${type}_${idx}`);
-  const orig=btn.innerHTML;
-  btn.innerHTML='⏳ 변환 중...';
-  btn.disabled=true;
-  btn.style.color='var(--accent)';
-
-  try{
-    const typeLabel = type==='answers'?'정답 및 해설':type==='questions'?'문제 내용':'학생 풀이';
-    const content=[
-      {type:'text',text:`아래 이미지는 고등학교 물리1 ${typeLabel} 이미지입니다. 이미지에 있는 모든 텍스트, 수식, 기호, 숫자를 빠짐없이 읽어서 텍스트로 정리해주세요.\n\n규칙:\n- 수식은 일반 텍스트로 표현 (예: F×d = 30N×4m)\n- 표나 그림에 있는 값도 포함\n- 손글씨도 최대한 읽어서 포함\n- 원문자(①②③④⑤)는 그대로 사용\n- 정리된 텍스트만 출력, 설명 추가 금지`}
-    ];
-    imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-
-    const res=await fetch('/api/proxy',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:2000,stream:false,
-        messages:[{role:'user',content}]})
-    });
-    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
-    const data=await res.json();
-    const text=data.content?.map(c=>c.text||'').join('').trim();
-    if(text){
-      const prev=textarea.value.trim();
-      textarea.value=prev?prev+'\n\n[이미지 변환 내용]\n'+text:'[이미지 변환 내용]\n'+text;
-      textarea.style.borderColor='var(--green)';
-      setTimeout(()=>textarea.style.borderColor='',2000);
-    }
-  }catch(e){
-    alert('변환 오류: '+e.message);
-  }finally{
-    btn.innerHTML=orig;
-    btn.disabled=false;
-    btn.style.color='var(--text2)';
-  }
-}
-
-function handleImgUpload(type,idx,input){
-  Array.from(input.files).forEach(file=>{
-    const r=new FileReader();
-    r.onload=e=>{imageStore[type][idx].push({base64:e.target.result.split(',')[1],mediaType:file.type||'image/jpeg',name:file.name});renderPreviews(type,idx);};
-    r.readAsDataURL(file);
-  });
-  input.value='';
-}
-
-function removeImage(type,idx,ii){imageStore[type][idx].splice(ii,1);renderPreviews(type,idx);}
-
-function renderPreviews(type,idx){
-  const area=document.getElementById(`preview_${type}_${idx}`);
-  const divider=document.getElementById(`divider_${type}_${idx}`);
-  const badge=document.getElementById(`badge_${type}_${idx}`);
-  const ocrBtn=document.getElementById(`ocr_btn_${type}_${idx}`);
-  if(!area)return;
-  const imgs=imageStore[type][idx]||[];
-  area.innerHTML='';
-  if(!imgs.length){
-    if(divider)divider.style.display='none';
-    if(badge)badge.style.display='none';
-    if(ocrBtn)ocrBtn.style.display='none';
-    return;
-  }
-  if(divider)divider.style.display='block';
-  if(badge){badge.style.display='inline';badge.textContent=`📷 ${imgs.length}`;}
-  if(ocrBtn)ocrBtn.style.display='flex';
-  imgs.forEach((img,ii)=>{
-    const w=document.createElement('div');w.className='img-preview-wrap';
-    w.innerHTML=`<img class="img-preview" src="data:${img.mediaType};base64,${img.base64}" onclick="openLightbox(this.src)"/><button class="img-remove-btn" onclick="removeImage('${type}',${idx},${ii})">×</button><div class="img-name">${img.name}</div>`;
-    area.appendChild(w);
-  });
-}
-
 function bulkUpload(key,input){
   Array.from(input.files).forEach(file=>{
     const r=new FileReader();
@@ -556,10 +321,6 @@ function renderBulkPreviews(key){
   area.appendChild(add);
 }
 
-function switchTab(idx){
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
-  document.querySelectorAll('.input-section').forEach((s,i)=>s.classList.toggle('active',i===idx));
-}
 
 function openLightbox(src){document.getElementById('lightboxImg').src=src;document.getElementById('lightbox').classList.add('open');}
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
@@ -654,124 +415,7 @@ async function analyze(){
 
   let parts=[], feedbackFormat='';
 
-  if(currentMode==='A'){
-    let problems=[];
-    for(let i=1;i<=problemCount;i++){
-      const q=document.getElementById(`questions_${i}`)?.value.trim()||'';
-      const a=document.getElementById(`answers_${i}`)?.value.trim()||'';
-      const s=document.getElementById(`solutions_${i}`)?.value.trim()||'';
-      const qI=imageStore.questions[i]||[],aI=imageStore.answers[i]||[],sI=imageStore.solutions[i]||[];
-      if(!q&&!a&&!s&&!qI.length&&!aI.length&&!sI.length)continue;
-      problems.push({num:i,q,a,s,qI,aI,sI});
-    }
-    if(!problems.length){alert('문제를 입력해주세요.');goBack();return;}
-
-    const loadingEl=rc.querySelector('.loading-text');
-    const setLoading=(msg,sub='')=>{if(loadingEl)loadingEl.innerHTML=`${msg}${sub?`<br><small>${sub}</small>`:''}`;};
-
-    // ── 공통 API 호출 (스트리밍 없음) ──
-    const callAPI=async(messages,maxTokens=3000,model='claude-opus-4-6')=>{
-      const res=await fetch('/api/proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({apiKey,model,max_tokens:maxTokens,stream:false,messages})});
-      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API 오류');}
-      const data=await res.json();
-      return data.content?.map(c=>c.text||'').join('').trim()||'';
-    };
-
-    // ── 1단계: 이미지 OCR (Opus — 가장 정확한 이미지 읽기) ──
-    const ocrImg=async(imgs,label,problemNum)=>{
-      if(!imgs.length)return'';
-      const content=[{type:'text',text:`이것은 고등학교 물리1 ${label} 이미지입니다.\n이미지에 있는 모든 내용을 빠짐없이 텍스트로 변환하세요.\n\n변환 규칙:\n- 수식: 일반 텍스트로 (예: ΣM = F×3L + mg×L = 0)\n- 기호: ×, ÷, ±, √, →, ∑ 등 그대로 사용\n- 숫자, 단위, 변수명 정확히\n- 손글씨도 최대한 정확히 읽기\n- 원문자 ①②③④⑤ 그대로\n- 그래프/표: 값과 레이블 포함\n- 변환된 텍스트만 출력, 부연설명 금지`}];
-      imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-      return await callAPI([{role:'user',content}],3000,'claude-opus-4-6');
-    };
-
-    // ── 2단계: 해설 검증 (정답과 핵심 풀이 단계 추출) ──
-    const verifySolution=async(rawOCR,imgs,problemNum)=>{
-      if(!rawOCR&&!imgs.length)return rawOCR;
-      const content=[
-        {type:'text',text:`아래는 물리1 문제 해설의 OCR 변환 결과입니다.\n\n[OCR 결과]\n${rawOCR||'(이미지만 있음)'}\n\n위 내용과 아래 이미지를 함께 보고 다음을 추출하세요:\n\n1. 최종 정답 (원문자 ①②③④⑤)\n2. 풀이 단계 (해설에 나온 수식·수치 그대로, 자체 추론 금지)\n3. 핵심 물리 개념 (해설에 명시된 것만)\n\n형식:\n[정답] ①\n[풀이]\n1단계: ...\n2단계: ...\n[개념] ...`}
-      ];
-      imgs.forEach(img=>content.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
-      const verified=await callAPI([{role:'user',content}],2000,'claude-opus-4-6');
-      // OCR + 검증 결과 합치기
-      return `[원본 OCR]\n${rawOCR}\n\n[검증된 핵심 내용]\n${verified}`;
-    };
-
-    // 이미지 있는 섹션 OCR + 검증
-    const ocrCounts={q:0,a:0,s:0};
-    problems.forEach(p=>{if(p.aI.length&&!p.a)ocrCounts.a++;if(p.qI.length&&!p.q)ocrCounts.q++;if(p.sI.length&&!p.s)ocrCounts.s++;});
-    const totalOCR=ocrCounts.a+ocrCounts.q+ocrCounts.s;
-    let doneOCR=0;
-
-    if(totalOCR>0){
-      setLoading('🔍 1단계: 이미지 정밀 분석 중...','Opus 모델로 수식·기호를 정확히 읽습니다');
-      for(const p of problems){
-        if(p.aI.length&&!p.a){
-          setLoading(`🔍 해설 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num} — 수식과 풀이 단계 추출`);
-          const raw=await ocrImg(p.aI,'정답 및 해설',p.num);
-          setLoading(`✅ 해설 검증 중... (${doneOCR}/${totalOCR})`,`문제 ${p.num} — 정답과 풀이 단계 확인`);
-          p.a=await verifySolution(raw,p.aI,p.num);
-        }
-        if(p.qI.length&&!p.q){
-          setLoading(`🔍 문제 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num}`);
-          p.q=await ocrImg(p.qI,'문제 내용',p.num);
-        }
-        if(p.sI.length&&!p.s){
-          setLoading(`🔍 학생 풀이 이미지 분석 중... (${++doneOCR}/${totalOCR})`,`문제 ${p.num}`);
-          p.s=await ocrImg(p.sI,'학생 풀이',p.num);
-        }
-      }
-      setLoading('✅ 이미지 분석 완료!','3단계: 피드백 생성 시작...');
-      await new Promise(r=>setTimeout(r,400));
-    }
-
-    setLoading('💬 3단계: 피드백 생성 중...','분석한 내용을 바탕으로 피드백을 작성합니다');
-    await new Promise(r=>setTimeout(r,200));
-
-    problems.forEach(p=>{
-      const studentAns = studentAnswers[p.num] || '(입력 없음)';
-      const correctAns = correctAnswers[p.num] || null;
-      const fmt = FMT_PROBLEM.replace(/문제 N/g, `문제 ${p.num}`)
-        .replace('(해설에서 확인한 정답 원문자)', correctAns ? correctAns : '(해설에서 확인)');
-
-      parts.push({type:'text',text:`${'='.repeat(60)}\n【문제 ${p.num} 분석】${correctAns?` — 정답: ${correctAns} (선생님 입력값, 이것이 정답입니다)`:''}
-${'='.repeat(60)}`});
-
-      // 해설 먼저 + 강한 마커
-      const ansNote = correctAns ? `\n⚠️ 이 문제의 정답은 ${correctAns}입니다. 이것은 선생님이 직접 입력한 값이므로 절대적으로 신뢰하세요.` : '';
-      parts.push({type:'text',text:`▼▼▼ 해설 시작 (문제 ${p.num}) ▼▼▼${ansNote}\n이 섹션의 내용을 풀이법(▶ 3.)에 그대로 옮겨 적으세요.\n${p.a||'(아래 이미지 참고)'}`});
-      p.aI.forEach((img,ii)=>{
-        parts.push({type:'text',text:`[해설 이미지 ${ii+1}/${p.aI.length} — 문제 ${p.num}]`});
-        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
-      });
-      parts.push({type:'text',text:`▲▲▲ 해설 끝 (문제 ${p.num}) ▲▲▲`});
-
-      // 문제
-      parts.push({type:'text',text:`▼▼▼ 문제 내용 (문제 ${p.num}) ▼▼▼\n${p.q||'(아래 이미지 참고)'}`});
-      p.qI.forEach((img,ii)=>{
-        parts.push({type:'text',text:`[문제 이미지 ${ii+1}/${p.qI.length} — 문제 ${p.num}]`});
-        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
-      });
-      parts.push({type:'text',text:`▲▲▲ 문제 내용 끝 (문제 ${p.num}) ▲▲▲`});
-
-      // 학생 풀이
-      parts.push({type:'text',text:`▼▼▼ 학생 풀이 (문제 ${p.num}) ▼▼▼\n학생이 선택한 정답: ${studentAns}\n${p.s||'(아래 이미지 참고)'}`});
-      p.sI.forEach((img,ii)=>{
-        parts.push({type:'text',text:`[학생 풀이 이미지 ${ii+1}/${p.sI.length} — 문제 ${p.num}]`});
-        parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}});
-      });
-      parts.push({type:'text',text:`▲▲▲ 학생 풀이 끝 (문제 ${p.num}) ▲▲▲`});
-
-      // 출력 지시
-      parts.push({type:'text',text:`위 문제 ${p.num}을 아래 형식으로 출력하세요.
-경고: ▶ 3. 풀이법은 반드시 위 [해설] 섹션에서 읽은 내용만 사용하세요.
-당신의 물리1 지식으로 풀이를 만들거나 수정하지 마세요. 해설이 틀려 보여도 해설 그대로 옮기세요.
-${fmt}`});
-    });
-    feedbackFormat=`모든 문제 피드백 완료 후 아래 총평을 작성하세요:${FMT_TOTAL}`;
-  } else {
-    const qT=document.getElementById('bulk-text-q').value.trim();
+  const qT=document.getElementById('bulk-text-q').value.trim();
     const aT=document.getElementById('bulk-text-a').value.trim();
     const sT=document.getElementById('bulk-text-s').value.trim();
     const range=document.getElementById('bulk-range').value.trim();
@@ -782,6 +426,12 @@ ${fmt}`});
     const bulkAnsText=bulkAnsEntries.length>0
       ? '\n\n[학생 선택 정답 목록 — 반드시 이 값으로 정오답을 판단하세요]\n'+bulkAnsEntries.map(([n,v])=>`문제 ${n}번: 학생 정답 = ${v}`).join('\n')
       : '\n\n[학생 선택 정답: 입력 없음 — 학생 풀이 이미지에서 최종 선택을 찾아 판단하세요]';
+
+    // 정답 목록 텍스트 생성
+    const bulkCorrEntries=Object.entries(bulkCorrectAnswers).sort((a,b)=>parseInt(a[0])-parseInt(b[0]));
+    const bulkCorrText=bulkCorrEntries.length>0
+      ? '\n\n[정답 목록 — 선생님 입력값, 절대적으로 신뢰하세요]\n'+bulkCorrEntries.map(([n,v])=>`문제 ${n}번 정답: ${v}`).join('\n')
+      : '';
 
     parts.push({type:'text',text:'[정답 및 해설 사진/내용] ← 이것을 먼저 읽어 각 문제의 정답을 파악하세요'});
     if(aT)parts.push({type:'text',text:aT});
@@ -794,12 +444,12 @@ ${fmt}`});
     bulkStore.s.forEach(img=>parts.push({type:'image',source:{type:'base64',media_type:img.mediaType,data:img.base64}}));
     feedbackFormat=`사진과 내용을 분석하세요.
 ${range?`분석 대상: ${range}`:'사진에서 모든 문제를 찾아 분석하세요.'}
+${bulkCorrText}
 ${bulkAnsText}
-정답은 반드시 [정답 및 해설]에서 확인하고, 정오답은 위 학생 선택 정답과 비교하세요.
+${bulkCorrText?'위 [정답 목록]이 있는 문제는 반드시 그 값을 정답으로 사용하세요. 해설에서 다시 읽지 마세요.':'정답은 반드시 [정답 및 해설]에서 확인하세요.'}
 각 문제마다 아래 형식을 반복하세요:
 ${FMT_PROBLEM.replace(/문제 N/g,'문제 N(번호)')}
 모든 문제 완료 후:${FMT_TOTAL}`;
-  }
   parts.push({type:'text',text:feedbackFormat});
 
   try{
@@ -1113,8 +763,6 @@ function initBulkCountBtns(){
   }
 }
 
-initCountBtns();
-renderInputs();
 initBulkCountBtns();
 </script>
 </body>
