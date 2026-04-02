@@ -412,6 +412,22 @@ async function analyze(){
 
   const SYSTEM=`당신은 대한민국 고등학교 물리1 전문 교사입니다. 학생 풀이를 분석하고 피드백을 작성합니다.
 
+【이미지 읽기 — 물리1 용어 정확성】
+이미지에서 텍스트를 읽을 때 물리1 맥락에 맞게 정확히 읽으세요.
+
+수식·기호 읽기 규칙 (가장 중요):
+- 질량을 나타낼 때: m, 2m, M, 3M 등 (g 없음) — 단위는 kg
+- 중력/무게를 나타낼 때: mg, 2mg, Mg 등 (g 있음) — 단위는 N
+- 이미지에서 "2m"과 "2mg"는 완전히 다른 물리량입니다. 이미지에 g가 있는지 없는지 반드시 확인하세요.
+- 실(줄)에 연결된 물체의 질량 표기는 보통 m, 2m, M 등 g 없이 씁니다.
+- 힘·장력·중력은 mg, 2mg처럼 g를 붙여 씁니다.
+- L/2, M/3 등은 길이나 질량의 분수값입니다.
+
+자주 혼동되는 한글 오인식:
+- 출퇴 → 출제, 질감 → 질량, 무계 → 무게, 막돼 → 막대
+- 마철 → 마찰, 수직횡력 → 수직항력, 돌림 힘 → 돌림힘
+- 운동에네지 → 운동 에너지, 역학적에네지 → 역학적 에너지
+
 반드시 지켜야 할 규칙:
 
 【풀이법(▶ 3.) 작성 — 가장 중요】
@@ -556,10 +572,30 @@ ${FMT_PROBLEM.replace(/문제 N/g,'문제 N(번호)')}
 
 let lastRawText='';
 
+// 물리1 OCR 오인식 교정
+function correctPhysicsText(text){
+  const corrections=[
+    [/출퇴/g,'출제'],[/질감/g,'질량'],[/무계\b/g,'무게'],[/속도\b/g,'속력'],
+    [/떨어지지\s*않다/g,'떨어지지 않다'],[/떨어지지않다/g,'떨어지지 않다'],
+    [/떨어지지\s*않는/g,'떨어지지 않는'],[/막돼/g,'막대'],
+    [/수직\s*횡력/g,'수직항력'],[/수직횡력/g,'수직항력'],
+    [/관성\s*의\s*법착/g,'관성의 법칙'],[/작용\s*반작용/g,'작용 반작용'],
+    [/운동\s*에네지/g,'운동 에너지'],[/운동에네지/g,'운동 에너지'],
+    [/퍼텐\s*셜/g,'퍼텐셜'],[/역학적\s*에네지/g,'역학적 에너지'],
+    [/마철/g,'마찰'],[/마찰력\s*계수/g,'마찰 계수'],[/충격\s*량/g,'충격량'],
+    [/운동\s*량/g,'운동량'],[/돌림\s*힘/g,'돌림힘'],[/도르\s*래/g,'도르래'],
+    [/탄성\s*력/g,'탄성력'],[/합력\s*/g,'합력'],[/알짜\s*힘/g,'알짜힘'],
+  ];
+  let result=text;
+  corrections.forEach(([pat,rep])=>{result=result.replace(pat,rep);});
+  return result;
+}
+
 function renderResult(text,container){
   lastRawText=text;
+  const corrected=correctPhysicsText(text);
   container.innerHTML='';
-  const lines=text.split('\n');
+  const lines=corrected.split('\n');
   let html='',inCard=false,inScoreGrid=false,inTable=false;
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
